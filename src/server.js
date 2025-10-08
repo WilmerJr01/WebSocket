@@ -1,17 +1,19 @@
-// server.js
 import { createServer } from "node:http";
 import express from "express";
 import { Server } from "socket.io";
 import dotenv from "dotenv";
+import connectDB from "./config/db.js";
+import Table from "./models/Table.js";
+
 dotenv.config();
 
 const app = express();
 const server = createServer(app);
 
-// Health
+// Health check
 app.get("/", (_, res) => res.send("Poker WS OK"));
 
-// CORS: usa CORS_ORIGIN en prod, localhost en dev
+// ===== CORS =====
 const allowedOrigins = (process.env.CORS_ORIGIN || "")
     .split(",")
     .map(s => s.trim())
@@ -23,135 +25,133 @@ const io = new Server(server, {
         methods: ["GET", "POST"],
         credentials: true,
     },
-    transports: ["websocket", "polling"],
-    // (opcional) tunear latidos en redes móviles:
+    transports: ["websocket", "polling"], // deja polling como fallback
     // pingInterval: Number(process.env.PING_INTERVAL) || 25000,
     // pingTimeout: Number(process.env.PING_TIMEOUT) || 20000,
 });
 
-// ====== Estado mínimo ======
-const userIdToSocket = new Map();
+// ===== Conexión a BD (singleton, serverless-friendly también) =====
+await connectDB();
 
-// ====== Auth del handshake ======
+// ===== Estado en memoria =====
+const userIdToSocket = new Map();
+const socketToUserId = new Map();
+
+// ===== Auth en handshake (compat con tu front: auth.userId) =====
 io.use((socket, next) => {
-    try {
-        // Front: io(url, { auth: { userId } })
-        const { userId } = socket.handshake.auth || {};
-        if (userId && String(userId).trim()) {
-            socket.data.userId = String(userId).trim();
-        } else {
-            // Puedes permitir anónimo mientras pruebas, o lanzar error
-            // return next(new Error("missing userId"));
-            socket.data.userId = null;
-        }
-        next();
-    } catch (e) {
-        next(e);
+    const userId = socket.handshake.auth?.userId;
+    if (userId && String(userId).trim()) {
+        socket.data.userId = String(userId).trim();
+        // no forzamos error si no viene; puedes exigirlo si quieres
     }
+    return next();
 });
 
-// ====== Conexión ======
-io.on("connection", (socket) => {
-    console.log("✅ conectado:", socket.id, "userId:", socket.data.userId);
+// ===== Conexiones =====
+io.on("connect", (socket) => {
+    console.log("✅ Socket conectado:", socket.id, "userId:", socket.data.userId);
 
-    // --- Compat: si tu front también hace 'register' tras conectar ---
-    socket.on("register", (userIdRaw) => {
-        const userId = String(userIdRaw || "").trim();
+    // Compat: registro manual si el cliente también emite 'register'
+    socket.on("register", (rawUserId) => {
+        const userId = String(rawUserId || "").trim();
         if (!userId) {
             socket.emit("register:error", "userId inválido");
             return;
         }
-        const prev = userIdToSocket.get(userId);
-        if (prev && prev !== socket.id) {
-            io.sockets.sockets.get(prev)?.emit("session:replaced");
-            io.sockets.sockets.get(prev)?.disconnect(true);
+
+        const prevSocketId = userIdToSocket.get(userId);
+        if (prevSocketId && prevSocketId !== socket.id) {
+            const prevSocket = io.sockets.sockets.get(prevSocketId);
+            prevSocket?.emit("session:replaced");
+            prevSocket?.disconnect(true);
         }
+
         userIdToSocket.set(userId, socket.id);
+        socketToUserId.set(socket.id, userId);
         socket.data.userId = userId;
-        socket.emit("register:ok", { userId });
+
+        socket.emit("register:ok", { userId, socketId: socket.id });
+        console.log(`🪪 Registrado userId=${userId} en socket=${socket.id}`);
     });
 
-    // ====== NUEVO: eventos que usa tu front con ACK ======
-
-    // joinTable(tableId, ack)
-    socket.on("joinTable", (tableId, ack) => {
+    // === joinTable con ACK y persistencia en Mongo ===
+    socket.on("joinTable", async (tableId, ack) => {
         try {
-            const roomId = String(tableId || "").trim();
-            if (!roomId) {
-                ack?.({ ok: false, error: "tableId vacío" });
-                socket.emit("joinTable:error", "tableId vacío");
-                return;
+            const userId = socket.data.userId || socketToUserId.get(socket.id);
+            if (!userId) {
+                const msg = "Debes registrarte primero (handshake o 'register').";
+                socket.emit("joinTable:error", msg);
+                return ack?.({ ok: false, error: msg });
             }
 
-            // (Opcional) validar auth
-            // if (!socket.data.userId) { ... }
+            if (!tableId) {
+                const msg = "Falta tableId.";
+                socket.emit("joinTable:error", msg);
+                return ack?.({ ok: false, error: msg });
+            }
 
-            socket.join(roomId);
-            // notifica a los demás en la mesa
-            socket.to(roomId).emit("room:joined", { userId: socket.data.userId, roomId });
-            ack?.({ ok: true });
-        } catch (e) {
-            const msg = e?.message || String(e);
-            ack?.({ ok: false, error: msg });
+            const table = await Table.findById(tableId);
+            if (!table) {
+                const msg = "La mesa no existe.";
+                socket.emit("joinTable:error", msg);
+                return ack?.({ ok: false, error: msg });
+            }
+
+            await socket.join(tableId);
+
+            const updated = await Table.findByIdAndUpdate(
+                tableId,
+                { $addToSet: { players: userId } },
+                { new: true }
+            );
+
+            io.to(tableId).emit("players:update", {
+                tableId,
+                players: updated.players,
+            });
+
+            ack?.({ ok: true, players: updated.players });
+            console.log(`👤 ${userId} se unió a la mesa ${tableId}`);
+        } catch (err) {
+            console.error(err);
+            const msg = "Error al unirse a la mesa.";
             socket.emit("joinTable:error", msg);
+            ack?.({ ok: false, error: msg });
         }
     });
 
-    // leaveTable(tableId, ack)
-    socket.on("leaveTable", (tableId, ack) => {
+    // === leaveTable con ACK y notificación ===
+    socket.on("leaveTable", async (tableId, ack) => {
         try {
-            const roomId = String(tableId || "").trim();
-            if (!roomId) {
-                ack?.({ ok: false, error: "tableId vacío" });
-                return;
-            }
-            socket.leave(roomId);
-            socket.to(roomId).emit("room:left", { userId: socket.data.userId, roomId });
+            const userId = socket.data.userId || socketToUserId.get(socket.id);
+            if (tableId) await socket.leave(tableId);
+            io.to(tableId).emit("playerLeft", { userId, tableId });
             ack?.({ ok: true });
-        } catch (e) {
-            ack?.({ ok: false, error: e?.message || String(e) });
+        } catch (err) {
+            ack?.({ ok: false, error: err.message });
         }
     });
 
-    // ====== Compatibilidad con nombres antiguos ======
-    socket.on("joinRoom", (roomId, ack) => {
-        // redirige al nuevo handler
-        socket.emit("deprecation", "Usa 'joinTable' en lugar de 'joinRoom'.");
-        socket.emit("debug", { received: { roomId } });
-        socket.emit("joinTable:alias");
-        const rid = String(roomId || "");
-        if (!rid) return ack?.({ ok: false, error: "roomId vacío" });
-        socket.join(rid);
-        socket.to(rid).emit("room:joined", { userId: socket.data.userId, roomId: rid });
-        ack?.({ ok: true });
-    });
-
-    socket.on("leaveRoom", (roomId, ack) => {
-        socket.emit("deprecation", "Usa 'leaveTable' en lugar de 'leaveRoom'.");
-        const rid = String(roomId || "");
-        if (!rid) return ack?.({ ok: false, error: "roomId vacío" });
-        socket.leave(rid);
-        socket.to(rid).emit("room:left", { userId: socket.data.userId, roomId: rid });
-        ack?.({ ok: true });
-    });
-
-    // ====== Eventos de mesa ======
+    // Eventos de estado en tiempo real (ejemplo)
     socket.on("table:event", ({ roomId, payload }) => {
         const rid = String(roomId || "").trim();
         if (!rid) return;
-        // Aquí podrías validar reglas / estado / permisos
         io.to(rid).emit("table:update", payload);
     });
 
-    // ====== Desconexión ======
+    socket.emit("welcome", "Bienvenido al servidor de Poker 🎲");
+
     socket.on("disconnect", () => {
-        if (socket.data.userId) {
-            userIdToSocket.delete(socket.data.userId);
+        const userId = socketToUserId.get(socket.id);
+        if (userId && userIdToSocket.get(userId) === socket.id) {
+            userIdToSocket.delete(userId);
         }
+        socketToUserId.delete(socket.id);
+        console.log("❌ Socket desconectado:", socket.id);
     });
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3001; // Railway inyecta PORT automáticamente
 server.listen(PORT, () => {
     console.log(`WS escuchando en :${PORT}`);
 });
