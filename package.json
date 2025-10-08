@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Solo el web socket del proyecto",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node src/server.js"
   },
