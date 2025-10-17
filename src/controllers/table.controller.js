@@ -1,26 +1,5 @@
 import Table from "../models/Table.js";
 
-// Crear mesa
-export const createTable = async (req, res) => {
-  try {
-    const { name, maxPlayers, minBuyIn, maxBuyIn, bigBlind, smallBlind } = req.body;
-
-    const table = new Table({
-      name,
-      maxPlayers,
-      minBuyIn,
-      maxBuyIn,
-      bigBlind,
-      smallBlind,
-    });
-
-    await table.save();
-    res.status(201).json(table);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
-
 // Obtener todas las mesas
 export const getTables = async (req, res) => {
   try {
