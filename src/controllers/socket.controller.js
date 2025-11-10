@@ -2,6 +2,7 @@ import Table from "../models/Table.js";
 
 export const configureSocket = (io) => {
     // Mapas útiles
+    const StartGame = false;
     const userIdToSocket = new Map();
     const socketToUserId = new Map();
 
@@ -75,6 +76,8 @@ export const configureSocket = (io) => {
                     { $addToSet: { players: userId } },
                     { new: true }
                 );
+
+                console.log(updatedTable.players)
 
                 io.to(tableId).emit("players:update", {
                     tableId,
