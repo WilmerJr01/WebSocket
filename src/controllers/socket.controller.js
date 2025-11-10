@@ -77,8 +77,6 @@ export const configureSocket = (io) => {
                     { new: true }
                 );
 
-                console.log(updatedTable.players)
-
                 io.to(tableId).emit("players:update", {
                     tableId,
                     players: updatedTable.players,
