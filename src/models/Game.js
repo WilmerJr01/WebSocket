@@ -14,15 +14,9 @@ const gameSchema = new mongoose.Schema(
                     ref: "User",
                     required: true,
                 },
-                chips: { type: Number, required: true, min: 0},
-                waitingTime: { type: Number, default: 30},
+                chips: { type: Number, required: true, min: 0 },
+                waitingTime: { type: Number, default: 30 },
                 cards: [{ type: String }],
-            },
-        ],
-        inGamePlayers: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "User",
             },
         ],
         winner: {
@@ -35,27 +29,12 @@ const gameSchema = new mongoose.Schema(
             min: 0,
             default: 0,
         },
-        communityCards: [
+        cards: [
             {
                 type: String,
                 trim: true,
             },
         ],
-        status: {
-            type: String,
-            enum: ["waiting", "in_progress", "finished"],
-            default: "waiting",
-        },
-        currentTurn: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-        },
-        currentBet: {
-            type: Number,
-            required: true,
-            min: 0,
-            default: 0,
-        },
     },
     { timestamps: true }
 );

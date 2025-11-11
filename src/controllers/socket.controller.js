@@ -1,44 +1,103 @@
+import mongoose from "mongoose";
 import Table from "../models/Table.js";
+import { maybeStartGame } from "../utils/autoDealer.js";
 
 export const configureSocket = (io) => {
-    // Mapas útiles
-    const StartGame = false;
-    const userIdToSocket = new Map();
-    const socketToUserId = new Map();
+    // Mapas de sesión
+    const userIdToSocket = new Map(); // userId -> socketId
+    const socketToUserId = new Map(); // socketId -> userId
 
-    // 🟢 1) Añade ESTE BLOQUE antes del io.on("connect")
-    io.use((socket, next) => {
-        const userId = socket.handshake.auth?.userId; // viene desde el cliente (socket.auth)
-        if (userId) {
-            socket.data.userId = userId;
-            console.log(`🤝 Autenticado por handshake userId=${userId}`);
+    // ---------- Helpers ----------
+    const safeAck = (ack, payload) => {
+        try { if (typeof ack === "function") ack(payload); } catch { }
+    };
+
+    const isValidObjectId = (id) => {
+        try { return !!id && mongoose.Types.ObjectId.isValid(id); }
+        catch { return false; }
+    };
+
+    const getUserId = (socket) => socket.data.userId || socketToUserId.get(socket.id) || null;
+
+    const registerUserMaps = (socket, userId) => {
+        const prevSocketId = userIdToSocket.get(userId);
+        if (prevSocketId && prevSocketId !== socket.id) {
+            const prevSocket = io.sockets.sockets.get(prevSocketId);
+            prevSocket?.emit("session:replaced");
+            prevSocket?.disconnect(true);
         }
-        next(); // continuar siempre
+        userIdToSocket.set(userId, socket.id);
+        socketToUserId.set(socket.id, userId);
+        socket.data.userId = userId;
+    };
+
+    const unregisterUserMaps = (socket) => {
+        const userId = socketToUserId.get(socket.id);
+        if (userId && userIdToSocket.get(userId) === socket.id) {
+            userIdToSocket.delete(userId);
+        }
+        socketToUserId.delete(socket.id);
+    };
+
+    // Limpia al usuario de todas las mesas (DB + rooms) para este socket
+    const leaveAllTablesForSocket = async (socket) => {
+        const userId = getUserId(socket);
+        if (!userId) return;
+
+        // Rooms donde está el socket (excluye la room privada del socket)
+        const rooms = [...socket.rooms].filter((r) => r !== socket.id);
+
+        // Intentar abandonar rooms y limpiar DB
+        await Promise.allSettled(
+            rooms.map(async (tableId) => {
+                try {
+                    if (isValidObjectId(tableId)) {
+                        await Table.findByIdAndUpdate(
+                            tableId,
+                            { $pull: { players: userId } },
+                            { new: false }
+                        );
+                        io.to(tableId).emit("playerLeft", { userId, tableId });
+                    }
+                } catch (e) {
+                    console.error(`[leaveAllTables] Error limpiando ${tableId} para ${userId}:`, e.message);
+                } finally {
+                    try { await socket.leave(tableId); } catch { }
+                }
+            })
+        );
+    };
+
+    // ---------- Middleware de handshake ----------
+    io.use((socket, next) => {
+        const userId = socket.handshake.auth?.userId;
+        if (userId && String(userId).trim()) {
+            socket.data.userId = String(userId).trim();
+            console.log(`🤝 Handshake OK userId=${socket.data.userId}`);
+        }
+        next();
     });
 
-    // 🟢 2) Ahora sí, manejamos las conexiones
-    io.on("connect", (socket) => {
+    // ---------- Conexión ----------
+    io.on("connect", async (socket) => {
         console.log("✅ Socket conectado:", socket.id);
 
-        // Registrar usuario manualmente (compatibilidad con clientes antiguos)
+        // Si vino en handshake, registra
+        if (socket.data.userId) {
+            registerUserMaps(socket, socket.data.userId);
+            socket.emit("register:ok", { userId: socket.data.userId, socketId: socket.id });
+        }
+
+        socket.emit("welcome", "Bienvenido al servidor de Poker 🎲");
+
+        // Compatibilidad: registro manual
         socket.on("register", (rawUserId) => {
             const userId = String(rawUserId || "").trim();
             if (!userId) {
                 socket.emit("register:error", "userId inválido");
                 return;
             }
-
-            const prevSocketId = userIdToSocket.get(userId);
-            if (prevSocketId && prevSocketId !== socket.id) {
-                const prevSocket = io.sockets.sockets.get(prevSocketId);
-                prevSocket?.emit("session:replaced");
-                prevSocket?.disconnect(true);
-            }
-
-            userIdToSocket.set(userId, socket.id);
-            socketToUserId.set(socket.id, userId);
-            socket.data.userId = userId;
-
+            registerUserMaps(socket, userId);
             socket.emit("register:ok", { userId, socketId: socket.id });
             console.log(`🪪 Registrado userId=${userId} en socket=${socket.id}`);
         });
@@ -46,73 +105,159 @@ export const configureSocket = (io) => {
         // Unirse a una mesa
         socket.on("joinTable", async (tableId, ack) => {
             try {
-                const userId = socket.data.userId || socketToUserId.get(socket.id);
+                const userId = getUserId(socket);
                 if (!userId) {
                     const msg = "Debes registrarte primero (emitir 'register' con userId).";
                     socket.emit("joinTable:error", msg);
-                    if (typeof ack === "function") ack({ ok: false, error: msg });
-                    return;
+                    return safeAck(ack, { ok: false, error: msg });
                 }
 
-                if (!tableId) {
-                    const msg = "Falta tableId.";
+                if (!isValidObjectId(tableId)) {
+                    const msg = "tableId inválido.";
                     socket.emit("joinTable:error", msg);
-                    if (typeof ack === "function") ack({ ok: false, error: msg });
-                    return;
+                    return safeAck(ack, { ok: false, error: msg });
                 }
 
-                const table = await Table.findById(tableId);
+                const table = await Table.findById(tableId).lean();
                 if (!table) {
                     const msg = "La mesa no existe.";
                     socket.emit("joinTable:error", msg);
-                    if (typeof ack === "function") ack({ ok: false, error: msg });
-                    return;
+                    return safeAck(ack, { ok: false, error: msg });
                 }
 
-                await socket.join(tableId);
+                const players = Array.isArray(table.players) ? table.players : [];
+                const maxPlayers = table.maxPlayers ?? 9;
 
-                const updatedTable = await Table.findByIdAndUpdate(
+                // Ya está dentro
+                if (players.includes(userId)) {
+                    await socket.join(tableId);
+                    io.to(tableId).emit("players:update", { tableId, players });
+                    console.log(`↩️ ${userId} ya estaba en la mesa ${tableId} (join idempotente).`);
+                    return safeAck(ack, { ok: true, players });
+                }
+
+                // Capacidad
+                if (players.length >= maxPlayers) {
+                    const msg = "La mesa está llena.";
+                    socket.emit("joinTable:error", msg);
+                    return safeAck(ack, { ok: false, error: msg, capacity: maxPlayers });
+                }
+
+                // Agregar en DB
+                const updated = await Table.findByIdAndUpdate(
                     tableId,
                     { $addToSet: { players: userId } },
                     { new: true }
-                );
+                ).lean();
 
-                io.to(tableId).emit("players:update", {
-                    tableId,
-                    players: updatedTable.players,
-                });
+                // (Raro, pero si falla el update, aborta)
+                if (!updated) {
+                    const msg = "No se pudo actualizar la mesa.";
+                    socket.emit("joinTable:error", msg);
+                    return safeAck(ack, { ok: false, error: msg });
+                }
 
-                if (typeof ack === "function") ack({ ok: true, players: updatedTable.players });
+                // Unir al room y notificar
+                await socket.join(tableId);
+                io.to(tableId).emit("players:update", { tableId, players: updated.players });
                 console.log(`👤 ${userId} se unió a la mesa ${tableId}`);
+                maybeStartGame(io, tableId, userIdToSocket).catch(console.error);
+                return safeAck(ack, { ok: true, players: updated.players });
             } catch (err) {
-                console.error(err);
+                console.error("[joinTable] Error:", err);
                 const msg = "Error al unirse a la mesa.";
                 socket.emit("joinTable:error", msg);
-                if (typeof ack === "function") ack({ ok: false, error: msg });
+                return safeAck(ack, { ok: false, error: msg });
             }
         });
 
         // Salir de la mesa
         socket.on("leaveTable", async (tableId, ack) => {
             try {
-                const userId = socket.data.userId || socketToUserId.get(socket.id);
+                const userIdStr = socket.data.userId || socketToUserId.get(socket.id);
+                if (!userIdStr) return ack?.({ ok: false, error: "No autenticado" });
+                if (!isValidObjectId(tableId)) return ack?.({ ok: false, error: "tableId inválido" });
+
+                const userOid = new mongoose.Types.ObjectId(userIdStr);
+
+                // salir de la room de sockets
                 await socket.leave(tableId);
-                io.to(tableId).emit("playerLeft", { userId, tableId });
-                if (typeof ack === "function") ack({ ok: true });
+
+                // Leemos estado mínimo para saber si el que sale es BTN/SB/BB/currentTurn
+                const before = await Table.findById(
+                    tableId,
+                    {
+                        players: 1,
+                        inGame: 1,
+                        "currentHand.order": 1,
+                        "currentHand.BTN": 1,
+                        "currentHand.SB": 1,
+                        "currentHand.BB": 1,
+                        "currentHand.currentTurn": 1,
+                    }
+                ).lean();
+
+                if (!before) return ack?.({ ok: false, error: "Mesa no existe" });
+
+                const wasBTN = String(before?.currentHand?.BTN || "") === userIdStr;
+                const wasSB = String(before?.currentHand?.SB || "") === userIdStr;
+                const wasBB = String(before?.currentHand?.BB || "") === userIdStr;
+                const wasTurn = String(before?.currentHand?.currentTurn || "") === userIdStr;
+
+                // Construimos el update atómico
+                const update = {
+                    $pull: {
+                        players: userOid,
+                        "currentHand.order": userOid,
+                    },
+                    // Quita sus apuestas y cartas privadas
+                    $unset: {
+                        [`currentHand.bets.${userIdStr}`]: "",
+                        [`currentHand.cards.${userIdStr}`]: "",
+                    },
+                    $set: {}
+                };
+
+                // Si ocupaba alguna posición clave, la dejamos nula (luego puedes recalcular)
+                if (wasBTN) update.$set["currentHand.BTN"] = null;
+                if (wasSB) update.$set["currentHand.SB"] = null;
+                if (wasBB) update.$set["currentHand.BB"] = null;
+                if (wasTurn) update.$set["currentHand.currentTurn"] = null;
+
+                const after = await Table.findByIdAndUpdate(
+                    tableId,
+                    update,
+                    { new: true, projection: { players: 1, inGame: 1, currentHand: 1 } }
+                ).lean();
+
+                // Notificar salida
+                io.to(tableId).emit("playerLeft", { userId: userIdStr, tableId });
+
+                // Si quedan <2 jugadores, apagamos inGame
+                if (after && (after.players?.length ?? 0) < 2 && after.inGame) {
+                    await Table.findByIdAndUpdate(tableId, { $set: { inGame: false } });
+                    io.to(tableId).emit("table:inGame", { tableId, inGame: false });
+                } else {
+                    // Opcional: emite el estado de mano actualizado para que el cliente se refresque
+                    io.to(tableId).emit("hand:state", { tableId, state: after.currentHand });
+                }
+
+                ack?.({ ok: true });
             } catch (err) {
-                if (typeof ack === "function") ack({ ok: false, error: err.message });
+                console.error("[leaveTable] error:", err);
+                ack?.({ ok: false, error: err.message || "Error al salir de la mesa" });
             }
         });
 
-        socket.emit("welcome", "Bienvenido al servidor de Poker 🎲");
-
-        socket.on("disconnect", () => {
-            const userId = socketToUserId.get(socket.id);
-            if (userId && userIdToSocket.get(userId) === socket.id) {
-                userIdToSocket.delete(userId);
+        // Desconexión
+        socket.on("disconnect", async (reason) => {
+            const userId = getUserId(socket);
+            console.log(`❌ Socket desconectado ${socket.id} (userId=${userId || "-"}) razón=${reason}`);
+            try {
+                await leaveAllTablesForSocket(socket);
+            } finally {
+                unregisterUserMaps(socket);
             }
-            socketToUserId.delete(socket.id);
-            console.log("❌ Socket desconectado:", socket.id);
         });
     });
 
