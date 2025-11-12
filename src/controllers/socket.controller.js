@@ -232,6 +232,7 @@ export const configureSocket = (io) => {
 
                 // Notificar salida
                 io.to(tableId).emit("playerLeft", { userId: userIdStr, tableId });
+                io.to(tableId).emit("players:update", { tableId, players: after?.players || [] });
 
                 // Si quedan <2 jugadores, apagamos inGame
                 if (after && (after.players?.length ?? 0) < 2 && after.inGame) {
