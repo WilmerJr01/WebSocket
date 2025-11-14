@@ -52,6 +52,11 @@ export class Mesa {
     this.mano = mano
     this.jugadores = jugadores
   }
+  //bet -> table.currentHand.pot
+  //mano -> table.currentHand.community
+  //jugadores -> table.currentHand.order
+  // const cards = table?.currentHand?.cards || new Map();
+  //mano de jugador = cards.get(idJugador) 
 }
 
 

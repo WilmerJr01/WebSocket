@@ -46,24 +46,17 @@ const tableSchema = new mongoose.Schema({
         order: [{
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User'
-        }],          // orden de jugadores en esta mano
-        BTN: {
+        }],
+        orderPreFlop: [{
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User'
-        },              // posición del botón
-        SB: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User'
-        },               // small blind
-        BB: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User'
-        },               // big blind
+        }],
         pot: Number,              // pozo total acumulado
         currentTurn: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User'
-        },        // índice del jugador actual
+        },
+        chips:{ type: Map, of: Number },       // índice del jugador actual
         bets: { type: Map, of: Number },  // apuestas actuales por jugador
         cards: { type: Map, of: [String] }, // cartas ocultas por jugador
         community: [String]

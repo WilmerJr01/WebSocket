@@ -119,6 +119,7 @@ export const configureSocket = (io) => {
                 }
 
                 const table = await Table.findById(tableId).lean();
+
                 if (!table) {
                     const msg = "La mesa no existe.";
                     socket.emit("joinTable:error", msg);

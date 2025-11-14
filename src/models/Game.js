@@ -14,8 +14,6 @@ const gameSchema = new mongoose.Schema(
                     ref: "User",
                     required: true,
                 },
-                chips: { type: Number, required: true, min: 0 },
-                waitingTime: { type: Number, default: 30 },
                 cards: [{ type: String }],
             },
         ],
@@ -28,13 +26,7 @@ const gameSchema = new mongoose.Schema(
             required: true,
             min: 0,
             default: 0,
-        },
-        cards: [
-            {
-                type: String,
-                trim: true,
-            },
-        ],
+        }
     },
     { timestamps: true }
 );
