@@ -340,7 +340,8 @@ export async function preflop(pre_players, mesa) {
     for(let y = 0; y < pre_players.length; y++){
       pre_players[y].bet = 0
     }  
-
+    // aqui deberia haber una funcion para limpiar la mesa, quitar las fichas y las cartas de la ronda anterior
+    //limpiar_mesa()
     console.log("--------------------")
     console.log("PREFLOP")
     console.log("--------------------")
