@@ -165,12 +165,13 @@ export async function turnos(pre_players, players, mesa, initial_bet){
                 //si el ultimo jugador decide hacer raise se pregunta cuanto con la funcion howmuch
                 //esta funcion tambien debe ser cambiada por una que reciba la respuesta de frontend
             } else if (decision2 === "raise"){
+                //new_bet va a ser la cantidad para entrar o seguir en la mesa, o sea el valor del raise
                 const new_bet = await howmuch(pre_players[i], initial_bet)
 
                 //una vez se reciba cuando subió el jugador, se resta de su cuenta de fichas la cantidad subida 
                 //(la cantidad subida es igual a lo digitado (new_bet) menos lo que se haya puesto en la mesa en esa ronda)
                 pre_players[i].fichas = pre_players[i].fichas - (new_bet - pre_players[i].bet)
-                //tambien se actualiza la apuesta actual, o sea, lo que deben pagar los jugadores para seguir en la mesa
+                //tambien se actualiza la cantidad de fichas en la mesa
                 mesa.bet = mesa.bet + (new_bet - pre_players[i].bet)
                 //y se actualiza lo que el jugador ha puesto en la mesa
                 pre_players[i].bet = new_bet
@@ -233,7 +234,7 @@ export async function turnos(pre_players, players, mesa, initial_bet){
                 }
                     
             } else if (decision === "limp") {
-                //si el jugador hace call o "limpea", se ejecuta el mismo proceso que como is hiciera raise pero cobrando lo de la apuesta
+                //si el jugador hace call o "limpea", se ejecuta el mismo proceso que como is hiciera raise pero cobrando lo de la apuesta actual
                 pre_players[i].fichas = pre_players[i].fichas - (initial_bet - pre_players[i].bet)
                 mesa.bet = mesa.bet + (initial_bet - pre_players[i].bet)
                 pre_players[i].bet = pre_players[i].bet + (initial_bet - pre_players[i].bet)
@@ -257,6 +258,8 @@ export async function raise(pre_players, initial_bet, indice, mesa){
   for (let i = 0; i < pre_players.length-1; i++) {
     //aqui en vez de parar en el ultimo de la lista, para en el penultimo
     //ya que cuando se hace raise, al ultimo al que se le pregunta es a quien está a la derecha de quien hizo raise
+    //ejemplo: jugadores = [a, b, c, d], si b hace raise, se manda el indice 2 (jugadores[2] = c) 
+    // y se reorganiza el vector de tal manera que quede new_jugadores = [c, d, a, b]
     if(i == pre_players.length-2){
         if(players.length < 2){
             //funcion_mostrarGanador()
@@ -340,7 +343,7 @@ export async function preflop(pre_players, mesa) {
     for(let y = 0; y < pre_players.length; y++){
       pre_players[y].bet = 0
     }  
-    // aqui deberia haber una funcion para limpiar la mesa, quitar las fichas y las cartas de la ronda anterior
+    // aqui deberia haber una funcion para limpiar la mesa en el front, quitar las fichas y las cartas de la ronda anterior
     //limpiar_mesa()
     console.log("--------------------")
     console.log("PREFLOP")
@@ -351,7 +354,8 @@ export async function preflop(pre_players, mesa) {
     let aux = 0;
     //reparte las cartas a cada jugador (una por una, no entrega las dos a en seguida)
     for(let y = 0; y < pre_players.length*2; y++){
-      pre_players[y].mano[0] = mazoMezclado[aux]
+      indice = y % pre_players.length
+        pre_players[indice].mano[0] = mazoMezclado[aux]
       aux = aux+1
       //mostrar_cartasJugadores()
     }
