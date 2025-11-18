@@ -538,7 +538,12 @@ async function startHand(io, tableId, userIdToSocket, sendChatMessage) {
     // - 
     // - 
     // -
-    sendChatMessage(tableId, "La mano ha comenzado.", true);
+    console.log("Iniciando mano en mesa ", tableId);
+    sendChatMessage({
+        tableId,
+        text: `Iniciando nueva mano...`,
+        isSystem: true,
+    });
 
     //preflop(Lista_jugadores, juego)
 
