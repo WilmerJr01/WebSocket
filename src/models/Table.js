@@ -56,7 +56,7 @@ const tableSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User'
         },
-        chips:{ type: Map, of: Number },       // índice del jugador actual
+        chips:{ type: Map, of: Number },      
         bets: { type: Map, of: Number },  // apuestas actuales por jugador
         cards: { type: Map, of: [String] }, // cartas ocultas por jugador
         community: [String]

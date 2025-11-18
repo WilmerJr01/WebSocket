@@ -32,6 +32,7 @@ export const configureSocket = (io) => {
         User.findById(userId).then(user => {
             if (user && user.nickname) {
                 socket.data.nickname = user.nickname;
+                socket.data.chips = user.stack;
             }
         })
         socket.data.userId = userId;
@@ -44,6 +45,12 @@ export const configureSocket = (io) => {
         }
         socketToUserId.delete(socket.id);
     };
+
+    function userChipsInTable(userChips, maxBuyIn, minBuyIn) {
+        if (userChips >= maxBuyIn) return maxBuyIn;
+        if (userChips >= minBuyIn) return userChips;
+        if (userChips < minBuyIn) return 0;
+    }
 
     // Limpia al usuario de todas las mesas (DB + rooms) para este socket
     const leaveAllTablesForSocket = async (socket) => {
@@ -241,7 +248,7 @@ export const configureSocket = (io) => {
                 // Agregar en DB
                 const updated = await Table.findByIdAndUpdate(
                     tableId,
-                    { $addToSet: { players: userId } },
+                    { $addToSet: { players: userId}, $set: { [`currentHand.chips.${userId}`]:  userChipsInTable(socket.data.chips, table.maxBuyIn, table.minBuyIn)}},
                     { new: true }
                 ).lean();
 
@@ -263,7 +270,7 @@ export const configureSocket = (io) => {
                     isSystem: true,
                 });
                 console.log(`Usuario ${userId} se unió a la mesa ${tableId}.`);
-                maybeStartGame(io, tableId, userIdToSocket).catch(console.error);
+                maybeStartGame(io, tableId, userIdToSocket, sendChatMessage).catch(console.error);
                 return safeAck(ack, { ok: true, players: updated.players });
             } catch (err) {
                 console.error("[joinTable] Error:", err);
