@@ -249,7 +249,12 @@ export const configureSocket = (io) => {
                 // Unir al room y notificar
                 await socket.join(tableId);
                 io.to(tableId).emit("players:update", { tableId, players: updated.players });
-                console.log(`👤 ${userId} se unió a la mesa ${tableId}`);
+                sendChatMessage({
+                    tableId,
+                    text: `El jugador ${userId} se ha unido a la mesa.`,
+                    isSystem: true,
+                });
+                console.log(`Usuario ${userId} se unió a la mesa ${tableId}.`);
                 maybeStartGame(io, tableId, userIdToSocket).catch(console.error);
                 return safeAck(ack, { ok: true, players: updated.players });
             } catch (err) {
