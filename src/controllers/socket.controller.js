@@ -68,6 +68,38 @@ export const configureSocket = (io) => {
         );
     };
 
+    // === CHAT NUEVO: helper para construir y emitir mensajes ===
+    const buildChatMessage = ({ tableId, userId, nickname, text, isSystem = false }) => ({
+        _id: new mongoose.Types.ObjectId().toString(), // id del mensaje
+        tableId: String(tableId),
+        userId: userId ? String(userId) : null,
+        nickname: nickname || (isSystem ? "Sistema" : "Jugador"),
+        text,
+        isSystem,
+        createdAt: new Date().toISOString(),
+    });
+
+    /**
+     * Envía un mensaje de chat a TODOS los jugadores de una mesa.
+     * Se puede usar desde cualquier módulo del backend.
+     */
+    const sendChatMessage = ({ tableId, userId = null, nickname, text, isSystem = false }) => {
+        const cleanText = String(text || "").trim();
+        if (!cleanText) return null;
+
+        const payload = buildChatMessage({
+            tableId,
+            userId,
+            nickname,
+            text: cleanText,
+            isSystem,
+        });
+
+        io.to(String(tableId)).emit("chat:message", payload);
+        return payload;
+    };
+    // === FIN CHAT NUEVO ===
+
     // ---------- Middleware de handshake ----------
     io.use((socket, next) => {
         const userId = socket.handshake.auth?.userId;
@@ -101,6 +133,62 @@ export const configureSocket = (io) => {
             socket.emit("register:ok", { userId, socketId: socket.id });
             console.log(`🪪 Registrado userId=${userId} en socket=${socket.id}`);
         });
+
+        // === CHAT NUEVO: handler para mensajes enviados por jugadores ===
+        /**
+         * Cliente emite:
+         * socket.emit("chat:send", { tableId, text, nickname }, (resp) => { ... })
+         */
+        socket.on("chat:send", async ({ tableId, text, nickname }, ack) => {
+            try {
+                const userId = getUserId(socket);
+                if (!userId) {
+                    const msg = "No autenticado";
+                    socket.emit("chat:error", msg);
+                    return safeAck(ack, { ok: false, error: msg });
+                }
+
+                if (!isValidObjectId(tableId)) {
+                    const msg = "tableId inválido.";
+                    socket.emit("chat:error", msg);
+                    return safeAck(ack, { ok: false, error: msg });
+                }
+
+                const cleanText = String(text || "").trim();
+                if (!cleanText) {
+                    return safeAck(ack, { ok: false, error: "Mensaje vacío" });
+                }
+                if (cleanText.length > 300) {
+                    return safeAck(ack, { ok: false, error: "Mensaje demasiado largo" });
+                }
+
+                // Verificar que el usuario pertenece a la mesa
+                const exists = await Table.exists({ _id: tableId, players: userId });
+                if (!exists) {
+                    const msg = "No perteneces a esta mesa.";
+                    socket.emit("chat:error", msg);
+                    return safeAck(ack, { ok: false, error: msg });
+                }
+
+                const nick = String(nickname || socket.data.nickname || "Jugador").slice(0, 24);
+
+                const messagePayload = sendChatMessage({
+                    tableId,
+                    userId,
+                    nickname: nick,
+                    text: cleanText,
+                    isSystem: false,
+                });
+
+                return safeAck(ack, { ok: true, message: messagePayload });
+            } catch (err) {
+                console.error("[chat:send] Error:", err);
+                const msg = "Error al enviar mensaje.";
+                socket.emit("chat:error", msg);
+                return safeAck(ack, { ok: false, error: msg });
+            }
+        });
+        // === FIN CHAT NUEVO ===
 
         // Unirse a una mesa
         socket.on("joinTable", async (tableId, ack) => {
@@ -263,5 +351,6 @@ export const configureSocket = (io) => {
         });
     });
 
-    return { userIdToSocket };
+    // IMPORTANTE: ahora retornamos también la función de chat
+    return { userIdToSocket, sendChatMessage };
 };
