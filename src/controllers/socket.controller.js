@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import Table from "../models/Table.js";
-import { maybeStartGame } from "../utils/autoDealer.js";
+import { maybeStartGame } from "../../logic/autoDealer.js";
 
 export const configureSocket = (io) => {
     // Mapas de sesión
