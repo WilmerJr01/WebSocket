@@ -7,6 +7,7 @@ import { stdin as input, stdout as output } from 'node:process';
 import { mazo } from './cartas.js';
 import { mejor_mano } from './ganador.js';
 import { verificar } from './Manos.js';
+import { Player } from "./clases.js";
 
 //reorganiza el vector de jugadores para rotar los roles (dealer, SB, BB)
 function reorganizarDesdeIndice(v, indice) {
@@ -538,12 +539,13 @@ async function startHand(io, tableId, userIdToSocket, sendChatMessage) {
     // - 
     // - 
     // -
-    console.log("Iniciando mano en mesa ", tableId);
     sendChatMessage({
         tableId,
         text: `Iniciando nueva mano...`,
         isSystem: true,
     });
+
+    const Lista_jugadores = buildListaJugadores(tableId)
 
     //preflop(Lista_jugadores, juego)
 
@@ -568,4 +570,99 @@ export async function maybeStartGame(io, tableId, userIdToSocket, sendChatMessag
         // Este proceso ganó la carrera → inicia mano
         await startHand(io, tableId, userIdToSocket, sendChatMessage);
     }
+}
+
+const turnTimers = {};
+
+function startTurnTimer(io, tableId, playerId, seconds = 20) {
+    // Si ya había un timer para esta mesa, lo cancelamos
+    if (turnTimers[tableId]) {
+        clearTimeout(turnTimers[tableId]);
+        delete turnTimers[tableId];
+    }
+
+    // (Opcional) avisar al front que arranca contador
+    io.to(tableId).emit("turn:timer:start", { playerId, seconds });
+
+    // Crear el nuevo timer
+    const timeout = setTimeout(() => {
+        console.log(`⏳ Jugador ${playerId} no actuó a tiempo en mesa ${tableId}`);
+
+        // Acción automática: fold del jugador
+        io.to(tableId).emit("action:auto-fold", { playerId });
+
+        // Aquí llamas tu lógica del motor:
+        // - aplicar fold
+        // - avanzar al siguiente jugador
+        handleAutoFold(tableId, playerId, io);
+
+        // El propio handleAutoFold seguramente llamará a nextPlayerTurn()
+        // y ahí volverás a llamar a startTurnTimer(io, tableId, nextPlayerId)
+    }, seconds * 1000);
+
+    turnTimers[tableId] = timeout;
+}
+
+/* 
+function nextPlayerTurn(io, tableId, nextPlayerId) {
+    io.to(tableId).emit("turn:active", { playerId: nextPlayerId });
+    startTurnTimer(io, tableId, nextPlayerId, 20); // 20s para actuar
+}
+
+Función para cancelar el timer cuando el jugador actúa 
+
+io.on("connection", (socket) => {
+    socket.on("action:send", async (payload) => {
+        const { tableId, action, amount } = payload;
+        const playerId = socket.userId; // o como lo estés guardando
+
+        // 1. Cancelar el timer de esa mesa porque el jugador ya actuó
+        if (turnTimers[tableId]) {
+            clearTimeout(turnTimers[tableId]);
+            delete turnTimers[tableId];
+        }
+
+        // 2. Procesar la acción normalmente en tu motor
+        await processAction(tableId, playerId, action, amount, io);
+
+        // 3. Dentro de processAction o después, decides si hay siguiente jugador:
+        // nextPlayerTurn(io, tableId, siguienteJugadorId);
+    });
+});
+
+*/
+
+async function buildListaJugadores(tableId) {
+    const table = await Table.findById(tableId).lean();
+
+    if (!table) {
+        throw new Error("Mesa no encontrada");
+    }
+
+    if (!table.players || !Array.isArray(table.players)) {
+        return [];
+    }
+
+    const Lista_jugadores = [];
+
+    // Promise.all para esperar todos los usuarios
+    const users = await Promise.all(
+        table.players.map((playerId) => User.findById(playerId).lean())
+    );
+
+    for (const user of users) {
+        if (!user) continue;
+
+        const jugador = new Player();
+        jugador.nombre = user._id.toString();
+
+        // OJO: al usar .lean(), chips es un objeto normal, no un Map
+        const userIdStr = user._id.toString();
+        const chipsMap = table.currentHand?.chips || {};
+        jugador.fichas = chipsMap[userIdStr] ?? 0;
+
+        Lista_jugadores.push(jugador);
+    }
+
+    return Lista_jugadores;
 }
