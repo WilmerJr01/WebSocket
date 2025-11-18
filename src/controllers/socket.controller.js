@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Table from "../models/Table.js";
 import { maybeStartGame } from "../../logic/autoDealer.js";
+import User from "../models/User.js";
 
 export const configureSocket = (io) => {
     // Mapas de sesión
@@ -28,6 +29,11 @@ export const configureSocket = (io) => {
         }
         userIdToSocket.set(userId, socket.id);
         socketToUserId.set(socket.id, userId);
+        User.findById(userId).then(user => {
+            if (user && user.nickname) {
+                socket.data.nickname = user.nickname;
+            }
+        })
         socket.data.userId = userId;
     };
 
@@ -246,12 +252,14 @@ export const configureSocket = (io) => {
                     return safeAck(ack, { ok: false, error: msg });
                 }
 
+                const nickname = socket.data.nickname;
+
                 // Unir al room y notificar
                 await socket.join(tableId);
                 io.to(tableId).emit("players:update", { tableId, players: updated.players });
                 sendChatMessage({
                     tableId,
-                    text: `El jugador ${userId} se ha unido a la mesa.`,
+                    text: `El jugador ${nickname} se ha unido a la mesa.`,
                     isSystem: true,
                 });
                 console.log(`Usuario ${userId} se unió a la mesa ${tableId}.`);
