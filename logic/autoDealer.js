@@ -384,6 +384,8 @@ export async function preflop(pre_players, mesa) {
     //verifica que retorno la funcion turnos
     if (players2 != false) {
         //si retorno algo en la lista players2, pasa a la siguiente ronda
+
+        //timer
         flop(players2, mesa2, mazoMezclado)
     } else {
         //si retornó false en players2 significa que todos foldearon y hubo un ganador en preflop, se vuelve a ejecutar preflop
@@ -546,6 +548,7 @@ async function startHand(io, tableId, userIdToSocket, sendChatMessage) {
     });
 
     const Lista_jugadores = buildListaJugadores(tableId)
+    console.log(Lista_jugadores)
 
     //preflop(Lista_jugadores, juego)
 
@@ -660,7 +663,8 @@ async function buildListaJugadores(tableId) {
         const userIdStr = user._id.toString();
         const chipsMap = table.currentHand?.chips || {};
         jugador.fichas = chipsMap[userIdStr] ?? 0;
-
+        const betsMap = table.currentHand?.bets || {};
+        jugador.bet = betsMap[userIdStr] ?? 0;
         Lista_jugadores.push(jugador);
     }
 
