@@ -357,7 +357,7 @@ export async function preflop(pre_players, mesa, io, userIdToSocket) {
     let aux = 0;
     //reparte las cartas a cada jugador (una por una, no entrega las dos a en seguida)
     for (let y = 0; y < pre_players.length * 2; y++) {
-        indice = y % pre_players.length
+        let indice = y % pre_players.length
         pre_players[indice].mano[Math.floor(aux / pre_players.length)] = mazoMezclado[aux]
         aux = aux + 1
         //mostrar_cartasJugadores()
