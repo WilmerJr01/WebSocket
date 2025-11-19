@@ -7,7 +7,7 @@ import { stdin as input, stdout as output } from 'node:process';
 import { mazo } from './cartas.js';
 import { mejor_mano } from './ganador.js';
 import { verificar } from './Manos.js';
-import { Player } from "./clases.js";
+import { Player, Mesa } from "./clases.js";
 
 //reorganiza el vector de jugadores para rotar los roles (dealer, SB, BB)
 function reorganizarDesdeIndice(v, indice) {
@@ -357,7 +357,7 @@ export async function preflop(pre_players, mesa) {
     //reparte las cartas a cada jugador (una por una, no entrega las dos a en seguida)
     for (let y = 0; y < pre_players.length * 2; y++) {
         indice = y % pre_players.length
-        pre_players[indice].mano[0] = mazoMezclado[aux]
+        pre_players[indice].mano[Math.floor(aux / pre_players.length)] = mazoMezclado[aux]
         aux = aux + 1
         //mostrar_cartasJugadores()
     }
@@ -366,7 +366,9 @@ export async function preflop(pre_players, mesa) {
     //organiza el vector auxiliar en el orden de juego (1. SB, 2.BB, ..., ultimo. dealer)
     let players = in_game_order(pre_players);
     //asignamos la initial_bet que en este caso seria la BB, hay que cambiarlo para que saque esta informacion de la mesa directamente
-    let initial_bet = 2;
+    
+    
+    let initial_bet = mesa.BigBlind;
     //resta de la cuenta del ultimo jugador de la lista (la BB) el valor del la BB y del penultimo (la SB) el valor de la SB
     pre_players.at(-1).fichas = pre_players.at(-1).fichas - initial_bet
     pre_players.at(-2).fichas = pre_players.at(-2).fichas - (initial_bet / 2)
@@ -547,8 +549,7 @@ async function startHand(io, tableId, userIdToSocket, sendChatMessage) {
         isSystem: true,
     });
 
-    const Lista_jugadores = await buildListaJugadores(tableId)
-    console.log(Lista_jugadores)
+    const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
 
     //preflop(Lista_jugadores, juego)
 
@@ -658,6 +659,8 @@ async function buildListaJugadores(tableId) {
 
         const jugador = new Player();
         jugador.nombre = user._id.toString();
+        jugador.mano = [];
+        jugador.puntaje = 0;
 
         // OJO: al usar .lean(), chips es un objeto normal, no un Map
         const userIdStr = user._id.toString();
@@ -665,9 +668,13 @@ async function buildListaJugadores(tableId) {
         jugador.fichas = chipsMap[userIdStr] ?? 0;
         const betsMap = table.currentHand?.bets || {};
         jugador.bet = betsMap[userIdStr] ?? 0;
-        console.log(jugador)
         Lista_jugadores.push(jugador);
     }
 
-    return Lista_jugadores;
+    const tableUse = new Mesa()
+    tableUse.bet = table.currentHand.pot
+    tableUse.BigBlind = table.bigBlind
+    tableUse.SmallBlind = table.smallBlind
+
+    return [Lista_jugadores, table];
 }
