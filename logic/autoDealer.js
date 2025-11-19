@@ -395,6 +395,9 @@ export async function preflop(pre_players, mesa, io, userIdToSocket) {
     mesa.bet = initial_bet + initial_bet / 2
     table.currentHand.pot= initial_bet + initial_bet/2
     await table.save()
+    if (io){
+        console.log("Tengo el socket")
+    }
     io.to(mesa.Id).emit("pot:update", {tableId : mesa.Id, pot : table.currentHand.pot});
     console.log("Pot: "+table.currentHand.pot)
     /*
