@@ -568,7 +568,7 @@ async function startHand(io, tableId, userIdToSocket, sendChatMessage) {
     });
 
     const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
-
+    console.log("Llego a starthand: "+juego.Id)
     await preflop(Lista_jugadores, juego, io, userIdToSocket)
 
 
