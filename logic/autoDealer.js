@@ -693,5 +693,5 @@ async function buildListaJugadores(tableId) {
     tableUse.SmallBlind = table.smallBlind
     tableUse.Id = table.currentHand._id
 
-    return [Lista_jugadores, table];
+    return [Lista_jugadores, tableUse];
 }
