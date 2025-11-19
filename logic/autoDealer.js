@@ -692,7 +692,7 @@ async function buildListaJugadores(tableId) {
     const tableUse = new Mesa()
     tableUse.BigBlind = table.bigBlind
     tableUse.SmallBlind = table.smallBlind
-    tableUse.Id = table.currentHand._id
+    tableUse.Id = table._id
     console.log("Le estoy pasando: "+tableUse.Id)
 
     return [Lista_jugadores, tableUse];
