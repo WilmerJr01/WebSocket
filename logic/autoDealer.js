@@ -396,6 +396,7 @@ export async function preflop(pre_players, mesa, io, userIdToSocket) {
     table.currentHand.pot= initial_bet + initial_bet/2
     await table.save()
     io.to(mesa.Id).emit("pot:update", table.currentHand.pot);
+    console.log("Pot: "+table.currentHand.pot)
     /*
     //empieza a preguntar que hacer a cada jugador ejecutando "turnos"
     const [players2, mesa2] = await turnos(pre_players, players, mesa, initial_bet)
