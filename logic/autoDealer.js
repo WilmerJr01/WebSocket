@@ -341,6 +341,7 @@ export async function raise(pre_players, initial_bet, indice, mesa) {
 
 //preflop, recibe la lista de jugadores y la mesa con su informacion inicial
 export async function preflop(pre_players, mesa, io, userIdToSocket) {
+    console.log("Estoy buscando en: "+mesa.Id)
     const table = await Table.findById(mesa.Id).select("currentHand")
     //al inicio de cada partida hace que la cantidad de fichas puestas por cada jugador en la mesa sea cero
     for (let y = 0; y < pre_players.length; y++) {
@@ -692,6 +693,7 @@ async function buildListaJugadores(tableId) {
     tableUse.BigBlind = table.bigBlind
     tableUse.SmallBlind = table.smallBlind
     tableUse.Id = table.currentHand._id
+    console.log("Le estoy pasando: "+tableUse)
 
     return [Lista_jugadores, tableUse];
 }
