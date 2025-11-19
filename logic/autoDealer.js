@@ -547,7 +547,7 @@ async function startHand(io, tableId, userIdToSocket, sendChatMessage) {
         isSystem: true,
     });
 
-    const Lista_jugadores = buildListaJugadores(tableId)
+    const Lista_jugadores = await buildListaJugadores(tableId)
     console.log(Lista_jugadores)
 
     //preflop(Lista_jugadores, juego)
@@ -665,6 +665,7 @@ async function buildListaJugadores(tableId) {
         jugador.fichas = chipsMap[userIdStr] ?? 0;
         const betsMap = table.currentHand?.bets || {};
         jugador.bet = betsMap[userIdStr] ?? 0;
+        console.log(jugador)
         Lista_jugadores.push(jugador);
     }
 
