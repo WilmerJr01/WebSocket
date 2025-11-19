@@ -693,7 +693,7 @@ async function buildListaJugadores(tableId) {
     tableUse.BigBlind = table.bigBlind
     tableUse.SmallBlind = table.smallBlind
     tableUse.Id = table.currentHand._id
-    console.log("Le estoy pasando: "+tableUse)
+    console.log("Le estoy pasando: "+tableUse.Id)
 
     return [Lista_jugadores, tableUse];
 }
