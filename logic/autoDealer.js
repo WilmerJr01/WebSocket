@@ -340,7 +340,8 @@ export async function raise(pre_players, initial_bet, indice, mesa) {
 }
 
 //preflop, recibe la lista de jugadores y la mesa con su informacion inicial
-export async function preflop(pre_players, mesa) {
+export async function preflop(pre_players, mesa, io, userIdToSocket) {
+    const table = await Table.findById(mesa.Id).select("currentHand")
     //al inicio de cada partida hace que la cantidad de fichas puestas por cada jugador en la mesa sea cero
     for (let y = 0; y < pre_players.length; y++) {
         pre_players[y].bet = 0
@@ -366,20 +367,35 @@ export async function preflop(pre_players, mesa) {
     //organiza el vector auxiliar en el orden de juego (1. SB, 2.BB, ..., ultimo. dealer)
     let players = in_game_order(pre_players);
     //asignamos la initial_bet que en este caso seria la BB, hay que cambiarlo para que saque esta informacion de la mesa directamente
-    
-    
+
+
     let initial_bet = mesa.BigBlind;
     //resta de la cuenta del ultimo jugador de la lista (la BB) el valor del la BB y del penultimo (la SB) el valor de la SB
     pre_players.at(-1).fichas = pre_players.at(-1).fichas - initial_bet
     pre_players.at(-2).fichas = pre_players.at(-2).fichas - (initial_bet / 2)
 
+    table.currentHand.chips.set(pre_players.at(-1).nombre, pre_players.at(-1).fichas - initial_bet);
+    table.currentHand.chips.set(pre_players.at(-2).nombre, pre_players.at(-2).fichas - (initial_bet / 2));
+    await table.save()
+
+    io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
+
     //actualiza la cantidad de fichas que estos dos jugadores han puesto en la mesa
     pre_players.at(-1).bet = initial_bet
     pre_players.at(-2).bet = initial_bet / 2
 
+    table.currentHand.bets.set(pre_players.at(-1).nombre, initial_bet);
+    table.currentHand.bets.set(pre_players.at(-2).nombre, initial_bet / 2);
+    await table.save()
+
+    io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
+
     //actualiza la cantidad de fichas que estan puestas en la mesa (la BB + la SB)
     mesa.bet = initial_bet + initial_bet / 2
-
+    table.currentHand.pot= initial_bet + initial_bet/2
+    await table.save()
+    io.to(mesa.Id).emit("pot:update", table.currentHand.pot);
+    /*
     //empieza a preguntar que hacer a cada jugador ejecutando "turnos"
     const [players2, mesa2] = await turnos(pre_players, players, mesa, initial_bet)
 
@@ -395,6 +411,7 @@ export async function preflop(pre_players, mesa) {
         preflop(mesa2.jugadores, mesa2)
         //hay que poner algun timer aqui para que se espere un tiempo entre una partida y otra
     }
+    */
 
     return players;
 }
@@ -551,7 +568,7 @@ async function startHand(io, tableId, userIdToSocket, sendChatMessage) {
 
     const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
 
-    //preflop(Lista_jugadores, juego)
+    await preflop(Lista_jugadores, juego, io, userIdToSocket)
 
 
 
@@ -672,9 +689,9 @@ async function buildListaJugadores(tableId) {
     }
 
     const tableUse = new Mesa()
-    tableUse.bet = table.currentHand.pot
     tableUse.BigBlind = table.bigBlind
     tableUse.SmallBlind = table.smallBlind
+    tableUse.Id = table.currentHand._id
 
     return [Lista_jugadores, table];
 }

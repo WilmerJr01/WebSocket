@@ -47,7 +47,8 @@ export class mano_mesa {
 }
 
 export class Mesa {
-  constructor(bet, mano, jugadores, BigBlind, SmallBlind){
+  constructor(Id, bet, mano, jugadores, BigBlind, SmallBlind){
+    this.Id = Id
     this.bet = bet 
     this.mano = mano
     this.jugadores = jugadores
