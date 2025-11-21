@@ -718,15 +718,16 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
         })
             io.to(mesa.Id).emit("community:update", []);
             io.to(mesa.Id).emit("cards:update", {})
+            io.to(tableId).emit("mostrar:cartas", false)
         });
 
         await TimeBetweenGames(5, () => {
             sendChatMessage({
-            tableId: mesa.Id,
+            tableId: tableId,
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            startHand(io, mesa.Id, sendChatMessage, mesa2.jugadores, mesa2);
+            preflop(mesa.jugadores, mesa, io, sendChatMessage)
         });
 
         
@@ -786,15 +787,16 @@ export async function flop(table, io, pre_players, mesa, mazo, sendChatMessage) 
         })
             io.to(mesa.Id).emit("community:update", []);
             io.to(mesa.Id).emit("cards:update", {})
+            io.to(tableId).emit("mostrar:cartas", false)
         });
 
         await TimeBetweenGames(5, () => {
             sendChatMessage({
-            tableId: mesa.Id,
+            tableId: tableId,
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            startHand(io, mesa.Id, sendChatMessage, mesa2.jugadores, mesa2);
+            preflop(mesa.jugadores, mesa, io, sendChatMessage)
         });
     }
 
@@ -841,15 +843,16 @@ export async function thorn(table, io, pre_players, mesa, mazo, cant_jug, sendCh
         })
             io.to(mesa.Id).emit("community:update", []);
             io.to(mesa.Id).emit("cards:update", {})
+            io.to(tableId).emit("mostrar:cartas", false)
         });
 
         await TimeBetweenGames(5, () => {
             sendChatMessage({
-            tableId: mesa.Id,
+            tableId: tableId,
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            startHand(io, mesa.Id, sendChatMessage, mesa2.jugadores, mesa2);
+            preflop(mesa.jugadores, mesa, io, sendChatMessage)
         });
     }
 }
@@ -898,15 +901,16 @@ export async function river(table, io, pre_players, mesa, mazo, cant_jug, sendCh
         })
             io.to(mesa.Id).emit("community:update", []);
             io.to(mesa.Id).emit("cards:update", {})
+            io.to(tableId).emit("mostrar:cartas", false)
         });
 
         await TimeBetweenGames(5, () => {
             sendChatMessage({
-            tableId: mesa.Id,
+            tableId: tableId,
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            startHand(io, mesa.Id, sendChatMessage, mesa2.jugadores, mesa2);
+            preflop(mesa.jugadores, mesa, io, sendChatMessage)
         });
     }
 }
@@ -1025,15 +1029,16 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
         })
             io.to(mesa.Id).emit("community:update", []);
             io.to(mesa.Id).emit("cards:update", {})
+            io.to(tableId).emit("mostrar:cartas", false)
         });
 
         await TimeBetweenGames(5, () => {
             sendChatMessage({
-            tableId: mesa.Id,
+            tableId: tableId,
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            startHand(io, mesa.Id, sendChatMessage, mesa.jugadores, mesa);
+            preflop(mesa.jugadores, mesa, io, sendChatMessage)
         });
 
 }
@@ -1042,7 +1047,7 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
 // hasta aqui
 
 // Arranque real de mano (tu función ya preparada)
-async function startHand(io, tableId, sendChatMessage, Lista_jugadores, juego) {
+async function startHand(io, tableId, sendChatMessage) {
     // rota botón, blinds, set gamesPlayed, currentHand.inProgress=true,
     // repartir hole cards (emit privado), emits públicos, etc.
 
@@ -1058,12 +1063,8 @@ async function startHand(io, tableId, sendChatMessage, Lista_jugadores, juego) {
         text: `Iniciando nueva mano...`,
         isSystem: true,
     });
-
-    
-    console.log("Llego a starthand: " + juego.Id)
-    
-
-        await TimeBetweenGames(10, () => {
+    const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
+    await TimeBetweenGames(10, () => {
             sendChatMessage({
             tableId: tableId,
             text: `Iniciando nueva partida...`,
@@ -1071,6 +1072,10 @@ async function startHand(io, tableId, sendChatMessage, Lista_jugadores, juego) {
         })
             preflop(Lista_jugadores, juego, io, sendChatMessage)
         });
+    console.log("Llego a starthand: " + juego.Id)
+    
+
+        
 
 
 
@@ -1091,8 +1096,8 @@ export async function maybeStartGame(io, tableId, userIdToSocket, sendChatMessag
 
     if (doc) {
         // Este proceso ganó la carrera → inicia mano
-        const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
-        await startHand(io, tableId, sendChatMessage, Lista_jugadores, juego);
+        
+        await startHand(io, tableId, sendChatMessage);
     }
 }
 
