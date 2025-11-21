@@ -136,11 +136,19 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet,
                 table.currentHand.chips.set(pre_players[0].nombre, players[0].fichas);
                 await table.save()
 
-                sendChatMessage({
+                await TimeBetweenGames(3, () => {
+                        sendChatMessage({
                         tableId: mesa.Id,
-                        text: `GANADOR ${pre_players[0].nombre} | Fichas: ${pre_players[0].fichas}`,
+                        text: `Limpiando la mesa...`,
                         isSystem: true
-                })
+                    })
+                        console.log(`GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`);
+                        sendChatMessage({
+                            tableId: mesa.Id,
+                            text: `GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`,
+                            isSystem: true
+                        })
+                    });
                 io.to(mesa.Id).emit("ganador", pre_players[0].nombre);
 
                 io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
@@ -176,11 +184,19 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet,
                     table.currentHand.chips.set(pre_players[0].nombre, players[0].fichas + mesa.bet);
                     await table.save()
 
-                    sendChatMessage({
+                    await TimeBetweenGames(3, () => {
+                        sendChatMessage({
                         tableId: mesa.Id,
-                        text: `GANADOR ${pre_players[0].nombre} | Fichas: ${pre_players[0].fichas}`,
+                        text: `Limpiando la mesa...`,
                         isSystem: true
                     })
+                        console.log(`GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`);
+                        sendChatMessage({
+                            tableId: mesa.Id,
+                            text: `GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`,
+                            isSystem: true
+                        })
+                    });
                     io.to(mesa.Id).emit("ganador", pre_players[0].nombre);
 
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
@@ -235,11 +251,19 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet,
                     table.currentHand.chips.set(pre_players[0].nombre, pre_players[0].fichas);
                     await table.save()
 
-                    sendChatMessage({
+                    await TimeBetweenGames(3, () => {
+                        sendChatMessage({
                         tableId: mesa.Id,
-                        text: `GANADOR ${pre_players[0].nombre} | Fichas: ${pre_players[0].fichas}`,
+                        text: `Limpiando la mesa...`,
                         isSystem: true
                     })
+                        console.log(`GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`);
+                        sendChatMessage({
+                            tableId: mesa.Id,
+                            text: `GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`,
+                            isSystem: true
+                        })
+                    });
                     io.to(mesa.Id).emit("ganador", pre_players[0].nombre);
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                     //reorganiza el vector de jugadores para rotar la BB
@@ -378,11 +402,19 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa, o
                 table.currentHand.chips.set(players[0].nombre, players[0].fichas);
                 await table.save()
 
-                sendChatMessage({
+                await TimeBetweenGames(3, () => {
+                        sendChatMessage({
                         tableId: mesa.Id,
-                        text: `GANADOR ${pre_players[0].nombre} | Fichas: ${pre_players[0].fichas}`,
+                        text: `Limpiando la mesa...`,
                         isSystem: true
-                })
+                    })
+                        console.log(`GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`);
+                        sendChatMessage({
+                            tableId: mesa.Id,
+                            text: `GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`,
+                            isSystem: true
+                        })
+                    });
                 io.to(mesa.Id).emit("ganador", pre_players[0].nombre);
                 io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
 
@@ -411,11 +443,19 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa, o
                     table.currentHand.chips.set(players[0].nombre, players[0].fichas);
                     await table.save()
 
-                    sendChatMessage({
+                    await TimeBetweenGames(3, () => {
+                        sendChatMessage({
                         tableId: mesa.Id,
-                        text: `GANADOR ${pre_players[0].nombre} | Fichas: ${pre_players[0].fichas}`,
+                        text: `Limpiando la mesa...`,
                         isSystem: true
                     })
+                        console.log(`GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`);
+                        sendChatMessage({
+                            tableId: mesa.Id,
+                            text: `GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`,
+                            isSystem: true
+                        })
+                    });
                     io.to(mesa.Id).emit("ganador", pre_players[0].nombre);
 
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
@@ -904,11 +944,20 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
 
                 console.log(`GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`);
 
-                sendChatMessage({
-                    tableId: mesa.Id,
-                    text: `GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`,
-                    isSystem: true
-                })
+                await TimeBetweenGames(3, () => {
+                        sendChatMessage({
+                        tableId: mesa.Id,
+                        text: `Limpiando la mesa...`,
+                        isSystem: true
+                    })
+                        console.log(`GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`);
+                        sendChatMessage({
+                            tableId: mesa.Id,
+                            text: `GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`,
+                            isSystem: true
+                        })
+                    });
+                io.to(mesa.Id).emit("ganador", pre_players[0].nombre);
             }
         }
     } else {
@@ -923,13 +972,20 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
                     await table.save()
 
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
-
-                    console.log(`GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`);
-                    sendChatMessage({
+                    await TimeBetweenGames(3, () => {
+                        sendChatMessage({
                         tableId: mesa.Id,
-                        text: `GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`,
+                        text: `Limpiando la mesa...`,
                         isSystem: true
                     })
+                        console.log(`GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`);
+                        sendChatMessage({
+                            tableId: mesa.Id,
+                            text: `GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`,
+                            isSystem: true
+                        })
+                    });
+                    
                     io.to(mesa.Id).emit("ganador", pre_players[0].nombre);
                     //aqui actualizas el server con el ganador
 
