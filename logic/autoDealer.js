@@ -438,7 +438,12 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
 
                 if (players.length > 1) {
                     console.log(mesa.mano)
-                    return [players, mesa]
+                    if(pre_players.length==2){
+                        return [pre_players, mesa]
+                    } else {
+                        return [players, mesa]
+                    }
+                    
                 } else {
                     //funcion_mostrarGanador()
                     players[0].fichas = players[0].fichas + mesa.bet
