@@ -660,18 +660,18 @@ export async function river(table, io, pre_players, mesa, mazo, cant_jug, sendCh
     console.log("--------------------")
     console.log("RIVER")
     console.log("--------------------")
-    sendChatMessage({
-        tableId: mesa.Id,
-        text: `Mesa: ${mesa.mano[0].cara}${mesa.mano[0].palo}, ${mesa.mano[1].cara}${mesa.mano[1].palo}, ${mesa.mano[2].cara}${mesa.mano[2].palo}, ${mesa.mano[3].cara}${mesa.mano[3].palo}, ${mesa.mano[4].cara}${mesa.mano[4].palo}`,
-        isSystem: true
-    })
+    
     console.log(mesa.mano)
     let players = pre_players
     for (let y = 0; y < pre_players.length; y++) {
         pre_players[y].bet = 0
     }
     mesa.mano[4] = mazo[cant_jug + 8]
-    
+    sendChatMessage({
+        tableId: mesa.Id,
+        text: `Mesa: ${mesa.mano[0].cara}${mesa.mano[0].palo}, ${mesa.mano[1].cara}${mesa.mano[1].palo}, ${mesa.mano[2].cara}${mesa.mano[2].palo}, ${mesa.mano[3].cara}${mesa.mano[3].palo}, ${mesa.mano[4].cara}${mesa.mano[4].palo}`,
+        isSystem: true
+    })
 
     const cards = mesa.mano.map(card => `${card.cara}${card.palo}`)
     io.to(mesa.Id).emit("community:update", cards)
