@@ -153,8 +153,14 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet,
 
                 io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                 //reorganiza el vector de jugadores para rotar la BB
+                const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
                 mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
-                return [false, mesa]
+                if(Lista_jugadores.length == mesa.jugadores.length){
+                    return [false, mesa]
+                } else {
+                    return [false, Lista_jugadores]
+                }
+                
             }
             //si el jugador es el ultimo pero aun hay mas jugadores en la lista, pregunta que hacer
             //la variable decision2 lo que debe esperar es la respuesta que devuelva el boton que presione el jugador 
@@ -201,8 +207,13 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet,
 
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                     //reorganiza el vector de jugadores para rotar la BB
+                        const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
                     mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
-                    return [false, mesa]
+                    if(Lista_jugadores.length == mesa.jugadores.length){
+                        return [false, mesa]
+                    } else {
+                        return [false, Lista_jugadores]
+                    }
                 } else {
                     //si luego de foldear hay mas de un jugador en la lista, se retorna la lista de jugadores en la mesa y la
                     //mesa para tener acceso a la informacion en ella (Las fichas que ya estan en ella)
@@ -267,8 +278,13 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet,
                     io.to(mesa.Id).emit("ganador", pre_players[0].nombre);
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                     //reorganiza el vector de jugadores para rotar la BB
+                    const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
                     mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
-                    return [false, mesa]
+                    if(Lista_jugadores.length == mesa.jugadores.length){
+                        return [false, mesa]
+                    } else {
+                        return [false, Lista_jugadores]
+                    }
                 }
             }
         } else {
@@ -420,8 +436,13 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa, o
                 io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
 
                 //reorganiza el vector de jugadores para rotar la BB
+                const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
                 mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
-                return [false, mesa]
+                if(Lista_jugadores.length == mesa.jugadores.length){
+                    return [false, mesa]
+                } else {
+                    return [false, Lista_jugadores]
+                }
             }
             io.to(mesa.Id).emit("turn:active", {
                     playerId: pre_players[i].nombre,
@@ -462,9 +483,13 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa, o
 
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                     //reorganiza el vector de jugadores para rotar la BB
+                    const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
                     mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
-                    
-                    return [false, mesa]
+                    if(Lista_jugadores.length == mesa.jugadores.length){
+                        return [false, mesa]
+                    } else {
+                        return [false, Lista_jugadores]
+                    }
 
                 } else {
                     return [players, mesa]
@@ -543,8 +568,13 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa, o
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
 
                     //reorganiza el vector de jugadores para rotar la BB
+                    const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
                     mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
-                    return [false, mesa]
+                    if(Lista_jugadores.length == mesa.jugadores.length){
+                        return [false, mesa]
+                    } else {
+                        return [false, Lista_jugadores]
+                    }
                 }
             }
         } else {
