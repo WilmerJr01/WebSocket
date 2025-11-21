@@ -117,6 +117,9 @@ export async function action_BB(pre_player) {
 export async function turnos(io, pre_players, players, mesa, initial_bet) {
 
     const table = await Table.findById(mesa.Id).select("currentHand")
+    if (table){
+        console.log("Si tengo table")
+    }
     for (let i = 0; i < pre_players.length; i++) {
 
         table.currentHand.currentTurn = pre_players[i].nombre;
