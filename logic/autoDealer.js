@@ -203,7 +203,13 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
 
                 io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
                 //se ejecuta la funcion raise que es basicamente otra funcion turnos pero con la lista reordenada y con una nueva apuesta inicial
-                return await raise(table, io, players, new_bet, 2, mesa)/////////
+                if(players.length == 2){
+                    return await raise(table, io, players, new_bet, 1, mesa)
+                } else {
+                    return await raise(table, io, players, new_bet, 2, mesa)
+                }
+                
+                /////////
             } else {
                 //si la decision es diferente a raise o fold, o sea check, se retorna la lista y la mesa para avanzar de ronda
                 if (players.length > 1) {
