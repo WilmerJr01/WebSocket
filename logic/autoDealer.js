@@ -994,7 +994,7 @@ async function startHand(io, tableId, userIdToSocket, sendChatMessage) {
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
+            preflop(Lista_jugadores, juego, io, sendChatMessage)
         });
 
 
