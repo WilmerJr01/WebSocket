@@ -436,6 +436,7 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa, o
                 for (let j = 0; j < players.length; j++) {
                     if (players[j].nombre === pre_players.at(-2).nombre) {
                         players.splice(j, 1)
+                        return [players, mesa]
                     }
                 }
                 if (players.length < 2) {
