@@ -710,7 +710,7 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
         //esperarNuevaPartida()
         
         //LIMPIAR MESA
-        const [Lista_jugadores, juego] = await buildListaJugadores(mesa.id)
+        const [Lista_jugadores, juego] = await buildListaJugadores(mesa.Id)
         await TimeBetweenGames(5, () => {
             sendChatMessage({
             tableId: mesa.Id,
@@ -786,7 +786,7 @@ export async function flop(table, io, pre_players, mesa, mazo, sendChatMessage) 
         //si hay mas de un jugador en la lista, avanza a la primera ronda
         thorn(table, io, players2, mesa2, mazo, cant_jug, sendChatMessage)
     } else {
-        const [Lista_jugadores, juego] = await buildListaJugadores(mesa.id)
+        const [Lista_jugadores, juego] = await buildListaJugadores(mesa.Id)
         await TimeBetweenGames(5, () => {
             sendChatMessage({
             tableId: mesa.Id,
@@ -847,7 +847,7 @@ export async function thorn(table, io, pre_players, mesa, mazo, cant_jug, sendCh
     if (players2 != false) {
         river(table, io, players2, mesa2, mazo, cant_jug, sendChatMessage)
     } else {
-        const [Lista_jugadores, juego] = await buildListaJugadores(mesa.id)
+        const [Lista_jugadores, juego] = await buildListaJugadores(mesa.Id)
         await TimeBetweenGames(5, () => {
             sendChatMessage({
             tableId: mesa.Id,
@@ -910,7 +910,7 @@ export async function river(table, io, pre_players, mesa, mazo, cant_jug, sendCh
         //si queda mas de un jugador en la lista para este punto, se ejecuta la funcion "definicion" que evalua que mano es mejor entre los jugadores de la mesa
         definicion(table, io, players2, mesa2, sendChatMessage)
     } else {
-        const [Lista_jugadores, juego] = await buildListaJugadores(mesa.id)
+        const [Lista_jugadores, juego] = await buildListaJugadores(mesa.Id)
         await TimeBetweenGames(5, () => {
             sendChatMessage({
             tableId: mesa.Id,
@@ -1042,7 +1042,7 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
     //se inicia una nueva partida
     //esperarNuevaPartida()
 
-    const [Lista_jugadores, juego] = await buildListaJugadores(mesa.id)
+    const [Lista_jugadores, juego] = await buildListaJugadores(mesa.Id)
     await TimeBetweenGames(5, () => {
             sendChatMessage({
             tableId: mesa.Id,
