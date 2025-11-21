@@ -673,10 +673,11 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
         await TimeBetweenGames(5, () => {
             sendChatMessage({
             tableId: mesa.Id,
-            text: `Iniciando nueva partida...`,
+            text: `Limpiando la mesa...`,
             isSystem: true
         })
-            //aqui va la linea de limpiar la mesa
+            io.to(mesa.Id).emit("community:update", []);
+            io.to(mesa.Id).emit("cards:update", {})
         });
 
         await TimeBetweenGames(5, () => {
@@ -737,7 +738,17 @@ export async function flop(table, io, pre_players, mesa, mazo, sendChatMessage) 
         //si hay mas de un jugador en la lista, avanza a la primera ronda
         thorn(table, io, players2, mesa2, mazo, cant_jug, sendChatMessage)
     } else {
-        await TimeBetweenGames(3, () => {
+        await TimeBetweenGames(5, () => {
+            sendChatMessage({
+            tableId: mesa.Id,
+            text: `Limpiando la mesa...`,
+            isSystem: true
+        })
+            io.to(mesa.Id).emit("community:update", []);
+            io.to(mesa.Id).emit("cards:update", {})
+        });
+
+        await TimeBetweenGames(5, () => {
             sendChatMessage({
             tableId: mesa.Id,
             text: `Iniciando nueva partida...`,
@@ -782,7 +793,17 @@ export async function thorn(table, io, pre_players, mesa, mazo, cant_jug, sendCh
     if (players2 != false) {
         river(table, io, players2, mesa2, mazo, cant_jug, sendChatMessage)
     } else {
-        await TimeBetweenGames(3, () => {
+        await TimeBetweenGames(5, () => {
+            sendChatMessage({
+            tableId: mesa.Id,
+            text: `Limpiando la mesa...`,
+            isSystem: true
+        })
+            io.to(mesa.Id).emit("community:update", []);
+            io.to(mesa.Id).emit("cards:update", {})
+        });
+
+        await TimeBetweenGames(5, () => {
             sendChatMessage({
             tableId: mesa.Id,
             text: `Iniciando nueva partida...`,
@@ -829,7 +850,17 @@ export async function river(table, io, pre_players, mesa, mazo, cant_jug, sendCh
         //si queda mas de un jugador en la lista para este punto, se ejecuta la funcion "definicion" que evalua que mano es mejor entre los jugadores de la mesa
         definicion(table, io, players2, mesa2, sendChatMessage)
     } else {
-        await TimeBetweenGames(3, () => {
+        await TimeBetweenGames(5, () => {
+            sendChatMessage({
+            tableId: mesa.Id,
+            text: `Limpiando la mesa...`,
+            isSystem: true
+        })
+            io.to(mesa.Id).emit("community:update", []);
+            io.to(mesa.Id).emit("cards:update", {})
+        });
+
+        await TimeBetweenGames(5, () => {
             sendChatMessage({
             tableId: mesa.Id,
             text: `Iniciando nueva partida...`,
@@ -912,7 +943,17 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
     //esperarNuevaPartida()
 
 
-    await TimeBetweenGames(3, () => {
+    await TimeBetweenGames(5, () => {
+            sendChatMessage({
+            tableId: mesa.Id,
+            text: `Limpiando la mesa...`,
+            isSystem: true
+        })
+            io.to(mesa.Id).emit("community:update", []);
+            io.to(mesa.Id).emit("cards:update", {})
+        });
+
+        await TimeBetweenGames(5, () => {
             sendChatMessage({
             tableId: mesa.Id,
             text: `Iniciando nueva partida...`,
@@ -945,7 +986,16 @@ async function startHand(io, tableId, userIdToSocket, sendChatMessage) {
 
     const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
     console.log("Llego a starthand: " + juego.Id)
-    await preflop(Lista_jugadores, juego, io, sendChatMessage)
+    
+
+        await TimeBetweenGames(10, () => {
+            sendChatMessage({
+            tableId: mesa.Id,
+            text: `Iniciando nueva partida...`,
+            isSystem: true
+        })
+            preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
+        });
 
 
 
