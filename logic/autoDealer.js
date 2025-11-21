@@ -334,16 +334,16 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet,
                 } else {
                     for (let j = 0; j < players.length; j++) {
 
-                    if (players[j].nombre === pre_players[i].nombre) {
-                        //busca el indice del jugador en el vector auxiliar
-                        if (j == players.length - 1) {
-                            return await raise(table, io, players, new_bet, 0, mesa, players, sendChatMessage)
-                        } else {
-                            //se manda a la funcion raise el indice j+1 ya que el primero al que se le debe preguntar es a quien está al lado de quien hizo raise
-                            return await raise(table, io, players, new_bet, j + 1, mesa, players, sendChatMessage)
+                        if (players[j].nombre === pre_players[i].nombre) {
+                            //busca el indice del jugador en el vector auxiliar
+                            if (j == players.length - 1) {
+                                return await raise(table, io, players, new_bet, 0, mesa, players, sendChatMessage)
+                            } else {
+                                //se manda a la funcion raise el indice j+1 ya que el primero al que se le debe preguntar es a quien está al lado de quien hizo raise
+                                return await raise(table, io, players, new_bet, j + 1, mesa, players, sendChatMessage)
+                            }
                         }
                     }
-                }
                 }
                 
 
@@ -385,10 +385,11 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet,
 export async function raise(table, io, pre_players, initial_bet, indice, mesa, orden, sendChatMessage) {
     let players = pre_players
     if(pre_players.length > 2){
+        console.log("el vector tiene mas de dos jugadores, indice: "+indice)
         pre_players = reorganizarDesdeIndice(pre_players, indice)
     } 
     
-    console.log("Entra a raise")
+
     for (let i = 0; i < pre_players.length - 1; i++) {
         //aqui en vez de parar en el ultimo de la lista, para en el penultimo
         //ya que cuando se hace raise, al ultimo al que se le pregunta es a quien está a la derecha de quien hizo raise
@@ -648,11 +649,7 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
         for (const p of pre_players) {
             cards[p.nombre] = p.mano.map(card => `${card.cara}${card.palo}`);
         }
-        sendChatMessage({
-            tableId: mesa.Id,
-            text: `Jugador ${indice}: ${pre_players[indice].mano[posicionCarta].cara}${pre_players[indice].mano[posicionCarta].palo}`,
-            isSystem: true
-        })
+
         io.to(mesa.Id).emit("cards:update", cards);
     }
 
