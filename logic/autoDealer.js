@@ -282,8 +282,10 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
 
                 io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
 
-
-                for (let j = 0; j < players.length; j++) {
+                if(players.length == 2){
+                    return await raise(table, io, players, new_bet, 1, mesa)
+                } else {
+                    for (let j = 0; j < players.length; j++) {
 
                     if (players[j].nombre === pre_players[i].nombre) {
                         //busca el indice del jugador en el vector auxiliar
@@ -295,6 +297,8 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
                         }
                     }
                 }
+                }
+                
 
             } else if (decision === "limp") {
                 //si el jugador hace call o "limpea", se ejecuta el mismo proceso que como is hiciera raise pero cobrando lo de la apuesta actual
