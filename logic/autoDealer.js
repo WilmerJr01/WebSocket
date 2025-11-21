@@ -669,7 +669,17 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
         //si retornó false en players2 significa que todos foldearon y hubo un ganador en preflop, se vuelve a ejecutar preflop
         //esperarNuevaPartida()
         
-        await TimeBetweenGames(3, () => {
+        //LIMPIAR MESA
+        await TimeBetweenGames(5, () => {
+            sendChatMessage({
+            tableId: mesa.Id,
+            text: `Iniciando nueva partida...`,
+            isSystem: true
+        })
+            //aqui va la linea de limpiar la mesa
+        });
+
+        await TimeBetweenGames(5, () => {
             sendChatMessage({
             tableId: mesa.Id,
             text: `Iniciando nueva partida...`,
