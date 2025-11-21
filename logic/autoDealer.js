@@ -347,7 +347,10 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
                 mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
                 return [false, mesa]
             }
-
+            io.to(mesa.Id).emit("turn:active", {
+                    playerId: pre_players[i].nombre,
+                    option: true
+            });
             let {action, amount} = await waitForDecision(pre_players[i].nombre);
             let decision2 = action
             let new_bet = amount
@@ -431,7 +434,10 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
                 }
             }
         } else {
-            
+            io.to(mesa.Id).emit("turn:active", {
+                    playerId: pre_players[i].nombre,
+                    option: true
+            });
             let {action, amount} = await waitForDecision(pre_players[i].nombre);
             let decision = action
             let new_bet = amount
@@ -602,6 +608,11 @@ export async function flop(table, io, pre_players, mesa, mazo, sendChatMessage) 
     for (let y = 0; y < pre_players.length; y++) {
         //devuelve a 0 las fichas que ha puesto cada jugador en la mesa ya que es una nueva ronda
         pre_players[y].bet = 0
+        table.currentHand.bets.set(pre_players[y].nombre, 0);
+        await table.save()
+
+        io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
+
     }
     let cant_jug = pre_players.length
     cant_jug = cant_jug * 2
