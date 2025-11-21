@@ -546,7 +546,7 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
         aux++;
 
         for (const p of pre_players) {
-            cards[p.id] = p.mano.map(card => `${card.cara}${card.palo}`);
+            cards[p.nombre] = p.mano.map(card => `${card.cara}${card.palo}`);
         }
         sendChatMessage({
             tableId: mesa.Id,
