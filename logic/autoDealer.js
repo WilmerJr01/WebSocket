@@ -237,7 +237,7 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet,
 
                     return await raise(table, io, players, new_bet, 1, mesa, players, sendChatMessage)
                 } else {
-                    return await raise(table, io, players, new_bet, 2, mesa, players, sendChatMessage)
+                    return await raise(table, io, players, new_bet, 0, mesa, players, sendChatMessage)
                 }
                 
                 /////////
