@@ -283,7 +283,7 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
                 io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
 
                 if(players.length == 2){
-                    return await raise(table, io, players, new_bet, 1, mesa)
+                    return await raise(table, io, players, new_bet, 0, mesa)
                 } else {
                     for (let j = 0; j < players.length; j++) {
 
