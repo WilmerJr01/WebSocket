@@ -153,14 +153,8 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet,
 
                 io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                 //reorganiza el vector de jugadores para rotar la BB
-                const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
                 mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
-                if(Lista_jugadores.length == mesa.jugadores.length){
-                    return [false, mesa]
-                } else {
-                    return [false, Lista_jugadores]
-                }
-                
+                return [false, mesa]
             }
             //si el jugador es el ultimo pero aun hay mas jugadores en la lista, pregunta que hacer
             //la variable decision2 lo que debe esperar es la respuesta que devuelva el boton que presione el jugador 
@@ -207,13 +201,8 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet,
 
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                     //reorganiza el vector de jugadores para rotar la BB
-                        const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
                     mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
-                    if(Lista_jugadores.length == mesa.jugadores.length){
-                        return [false, mesa]
-                    } else {
-                        return [false, Lista_jugadores]
-                    }
+                    return [false, mesa]
                 } else {
                     //si luego de foldear hay mas de un jugador en la lista, se retorna la lista de jugadores en la mesa y la
                     //mesa para tener acceso a la informacion en ella (Las fichas que ya estan en ella)
@@ -278,13 +267,8 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet,
                     io.to(mesa.Id).emit("ganador", pre_players[0].nombre);
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                     //reorganiza el vector de jugadores para rotar la BB
-                    const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
                     mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
-                    if(Lista_jugadores.length == mesa.jugadores.length){
-                        return [false, mesa]
-                    } else {
-                        return [false, Lista_jugadores]
-                    }
+                    return [false, mesa]
                 }
             }
         } else {
@@ -436,13 +420,8 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa, o
                 io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
 
                 //reorganiza el vector de jugadores para rotar la BB
-                const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
                 mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
-                if(Lista_jugadores.length == mesa.jugadores.length){
-                    return [false, mesa]
-                } else {
-                    return [false, Lista_jugadores]
-                }
+                return [false, mesa]
             }
             io.to(mesa.Id).emit("turn:active", {
                     playerId: pre_players[i].nombre,
@@ -483,13 +462,9 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa, o
 
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                     //reorganiza el vector de jugadores para rotar la BB
-                    const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
                     mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
-                    if(Lista_jugadores.length == mesa.jugadores.length){
-                        return [false, mesa]
-                    } else {
-                        return [false, Lista_jugadores]
-                    }
+                    
+                    return [false, mesa]
 
                 } else {
                     return [players, mesa]
@@ -568,13 +543,8 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa, o
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
 
                     //reorganiza el vector de jugadores para rotar la BB
-                    const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
                     mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
-                    if(Lista_jugadores.length == mesa.jugadores.length){
-                        return [false, mesa]
-                    } else {
-                        return [false, Lista_jugadores]
-                    }
+                    return [false, mesa]
                 }
             }
         } else {
@@ -740,6 +710,7 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
         //esperarNuevaPartida()
         
         //LIMPIAR MESA
+        const [Lista_jugadores, juego] = await buildListaJugadores(mesa.id)
         await TimeBetweenGames(5, () => {
             sendChatMessage({
             tableId: mesa.Id,
@@ -757,7 +728,13 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            preflop(mesa.jugadores, mesa, io, sendChatMessage)
+            
+                if(Lista_jugadores.length == mesa.jugadores.length){
+                    preflop(mesa.jugadores, mesa, io, sendChatMessage)
+                } else {
+                    preflop(Lista_jugadores, mesa, io, sendChatMessage)
+                }
+            
         });
 
         
@@ -809,6 +786,7 @@ export async function flop(table, io, pre_players, mesa, mazo, sendChatMessage) 
         //si hay mas de un jugador en la lista, avanza a la primera ronda
         thorn(table, io, players2, mesa2, mazo, cant_jug, sendChatMessage)
     } else {
+        const [Lista_jugadores, juego] = await buildListaJugadores(mesa.id)
         await TimeBetweenGames(5, () => {
             sendChatMessage({
             tableId: mesa.Id,
@@ -826,7 +804,11 @@ export async function flop(table, io, pre_players, mesa, mazo, sendChatMessage) 
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            preflop(mesa.jugadores, mesa, io, sendChatMessage)
+            if(Lista_jugadores.length == mesa.jugadores.length){
+                    preflop(mesa.jugadores, mesa, io, sendChatMessage)
+                } else {
+                    preflop(Lista_jugadores, mesa, io, sendChatMessage)
+                }
         });
     }
 
@@ -865,6 +847,7 @@ export async function thorn(table, io, pre_players, mesa, mazo, cant_jug, sendCh
     if (players2 != false) {
         river(table, io, players2, mesa2, mazo, cant_jug, sendChatMessage)
     } else {
+        const [Lista_jugadores, juego] = await buildListaJugadores(mesa.id)
         await TimeBetweenGames(5, () => {
             sendChatMessage({
             tableId: mesa.Id,
@@ -882,7 +865,11 @@ export async function thorn(table, io, pre_players, mesa, mazo, cant_jug, sendCh
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            preflop(mesa.jugadores, mesa, io, sendChatMessage)
+            if(Lista_jugadores.length == mesa.jugadores.length){
+                    preflop(mesa.jugadores, mesa, io, sendChatMessage)
+                } else {
+                    preflop(Lista_jugadores, mesa, io, sendChatMessage)
+                }
         });
     }
 }
@@ -923,6 +910,7 @@ export async function river(table, io, pre_players, mesa, mazo, cant_jug, sendCh
         //si queda mas de un jugador en la lista para este punto, se ejecuta la funcion "definicion" que evalua que mano es mejor entre los jugadores de la mesa
         definicion(table, io, players2, mesa2, sendChatMessage)
     } else {
+        const [Lista_jugadores, juego] = await buildListaJugadores(mesa.id)
         await TimeBetweenGames(5, () => {
             sendChatMessage({
             tableId: mesa.Id,
@@ -940,7 +928,11 @@ export async function river(table, io, pre_players, mesa, mazo, cant_jug, sendCh
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            preflop(mesa.jugadores, mesa, io, sendChatMessage)
+            if(Lista_jugadores.length == mesa.jugadores.length){
+                    preflop(mesa.jugadores, mesa, io, sendChatMessage)
+                } else {
+                    preflop(Lista_jugadores, mesa, io, sendChatMessage)
+                }
         });
     }
 }
@@ -1050,7 +1042,7 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
     //se inicia una nueva partida
     //esperarNuevaPartida()
 
-
+    const [Lista_jugadores, juego] = await buildListaJugadores(mesa.id)
     await TimeBetweenGames(5, () => {
             sendChatMessage({
             tableId: mesa.Id,
@@ -1068,7 +1060,11 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            preflop(mesa.jugadores, mesa, io, sendChatMessage)
+           if(Lista_jugadores.length == mesa.jugadores.length){
+                    preflop(mesa.jugadores, mesa, io, sendChatMessage)
+                } else {
+                    preflop(Lista_jugadores, mesa, io, sendChatMessage)
+                }
         });
 
 }
