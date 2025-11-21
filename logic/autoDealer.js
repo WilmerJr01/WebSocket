@@ -927,6 +927,7 @@ async function buildListaJugadores(tableId) {
     tableUse.SmallBlind = table.smallBlind
     tableUse.jugadores = Lista_jugadores
     tableUse.Id = table._id.toString();
+    tableUse.mano = []
     console.log("Le estoy pasando: " + tableUse.Id)
 
     return [Lista_jugadores, tableUse];
