@@ -150,7 +150,7 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
             });
 
             console.log(`Turno de ${playerinTurn}`)
-            let {action, amount} = await waitForDecision(playerinTurn);
+            let {action, amount} = await waitForDecision(pre_players[i].nombre);
             let decision2 = action
             let new_bet = amount
             console.log("la decision fue: "+decision2)
@@ -239,7 +239,7 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
                 });
             }
 
-            let {action, amount} = await waitForDecision(playerinTurn);
+            let {action, amount} = await waitForDecision(pre_players[i].nombre);
             let decision = action
             let new_bet = amount
             console.log("la decision fue: "+decision)
@@ -348,7 +348,7 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
                 return [false, mesa]
             }
 
-            let {action, amount} = await waitForDecision(playerinTurn);
+            let {action, amount} = await waitForDecision(pre_players[i].nombre);
             let decision2 = action
             let new_bet = amount
 
@@ -432,7 +432,7 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
             }
         } else {
             
-            let {action, amount} = await waitForDecision(playerinTurn);
+            let {action, amount} = await waitForDecision(pre_players[i].nombre);
             let decision = action
             let new_bet = amount
             console.log("la decision fue: "+decision)
