@@ -489,6 +489,11 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
     //al inicio de cada partida hace que la cantidad de fichas puestas por cada jugador en la mesa sea cero
     for (let y = 0; y < pre_players.length; y++) {
         pre_players[y].bet = 0
+        table.currentHand.bets.set(pre_players[y].nombre, 0);
+        await table.save()
+
+        io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
+
     }
     // aqui deberia haber una funcion para limpiar la mesa en el front, quitar las fichas y las cartas de la ronda anterior
     //limpiar_mesa()
