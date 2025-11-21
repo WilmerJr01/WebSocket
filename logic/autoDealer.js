@@ -726,7 +726,7 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            startHand(io, mesa.Id, sendChatMessage);
+            startHand(io, mesa.Id, sendChatMessage, mesa2.jugadores, mesa2);
         });
 
         
@@ -794,7 +794,7 @@ export async function flop(table, io, pre_players, mesa, mazo, sendChatMessage) 
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            startHand(io, mesa.Id, sendChatMessage);
+            startHand(io, mesa.Id, sendChatMessage, mesa2.jugadores, mesa2);
         });
     }
 
@@ -849,7 +849,7 @@ export async function thorn(table, io, pre_players, mesa, mazo, cant_jug, sendCh
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            startHand(io, mesa.Id, sendChatMessage);
+            startHand(io, mesa.Id, sendChatMessage, mesa2.jugadores, mesa2);
         });
     }
 }
@@ -906,7 +906,7 @@ export async function river(table, io, pre_players, mesa, mazo, cant_jug, sendCh
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            startHand(io, mesa.Id, sendChatMessage);
+            startHand(io, mesa.Id, sendChatMessage, mesa2.jugadores, mesa2);
         });
     }
 }
@@ -1033,7 +1033,7 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            startHand(io, mesa.Id, sendChatMessage);
+            startHand(io, mesa.Id, sendChatMessage, mesa.jugadores, mesa);
         });
 
 }
@@ -1042,7 +1042,7 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
 // hasta aqui
 
 // Arranque real de mano (tu función ya preparada)
-async function startHand(io, tableId, sendChatMessage) {
+async function startHand(io, tableId, sendChatMessage, Lista_jugadores, juego) {
     // rota botón, blinds, set gamesPlayed, currentHand.inProgress=true,
     // repartir hole cards (emit privado), emits públicos, etc.
 
@@ -1059,7 +1059,7 @@ async function startHand(io, tableId, sendChatMessage) {
         isSystem: true,
     });
 
-    const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
+    
     console.log("Llego a starthand: " + juego.Id)
     
 
@@ -1091,7 +1091,8 @@ export async function maybeStartGame(io, tableId, userIdToSocket, sendChatMessag
 
     if (doc) {
         // Este proceso ganó la carrera → inicia mano
-        await startHand(io, tableId, sendChatMessage);
+        const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
+        await startHand(io, tableId, sendChatMessage, Lista_jugadores, juego);
     }
 }
 
