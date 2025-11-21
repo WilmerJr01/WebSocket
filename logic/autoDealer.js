@@ -411,6 +411,12 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
                 await table.save()
 
                 io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
+                if(players.length == 2){
+                    let auxpla = []
+                    auxpla[0] = pre_players[1]
+                    auxpla[1] = pre_players[0]
+                    return await raise(table, io, auxpla, new_bet, 0, mesa)
+                }
                 for (let j = 0; j < players.length; j++) {
                     if (players[j].nombre === pre_players[i].nombre) {
                         return await raise(table, io, players, new_bet, j + 1, mesa)
@@ -489,6 +495,12 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
                 await table.save()
 
                 io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
+                if(players.length == 2){
+                    let auxpla = []
+                    auxpla[0] = pre_players[1]
+                    auxpla[1] = pre_players[0]
+                    return await raise(table, io, auxpla, new_bet, 0, mesa)
+                }
                 for (let j = 0; j < players.length; j++) {
                     if (players[j].nombre === pre_players[i].nombre) {
                         return await raise(table, io, players, new_bet, j + 1, mesa)
