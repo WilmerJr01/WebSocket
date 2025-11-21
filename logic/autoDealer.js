@@ -641,6 +641,7 @@ export async function thorn(table, io, pre_players, mesa, mazo, cant_jug, sendCh
     console.log("--------------------")
 
     const [players2, mesa2] = await turnos(pre_players, players, mesa, 0)
+    console.log(mesa2.mano)
 
     if (players2 != false) {
         river(table, io, players2, mesa2, mazo, cant_jug, sendChatMessage)
