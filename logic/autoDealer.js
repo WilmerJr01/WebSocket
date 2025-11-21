@@ -150,7 +150,9 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
             });
 
             console.log(`Turno de ${playerinTurn}`)
-            let {decision2, new_bet} = await waitForDecision(playerinTurn);
+            let {action, amount} = await waitForDecision(playerinTurn);
+            let decision2 = action
+            let new_bet = amount
             console.log("la decision fue: "+decision2)
             //si el jugador decide foldear, se recorre el vector de jugadores buscando el id del jugador y se expulsa del vector
             if (decision2 === "fold") {
@@ -237,7 +239,9 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
                 });
             }
 
-            let {decision, new_bet} = await waitForDecision(pre_players[i].nombre);
+            let {action, amount} = await waitForDecision(playerinTurn);
+            let decision = action
+            let new_bet = amount
             console.log("la decision fue: "+decision)
             if (decision === "fold") {
                 for (let j = 0; j < players.length; j++) {
@@ -344,7 +348,10 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
                 return [false, mesa]
             }
 
-            let {decision2, new_bet} = await waitForDecision(pre_players[i].nombre);
+            let {action, amount} = await waitForDecision(playerinTurn);
+            let decision2 = action
+            let new_bet = amount
+
             console.log("la decision fue: "+decision2)
             if (decision2 === "fold") {
                 for (let j = 0; j < players.length; j++) {
@@ -425,7 +432,9 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
             }
         } else {
             
-            let {decision, new_bet} = await waitForDecision(pre_players[i].nombre);
+            let {action, amount} = await waitForDecision(playerinTurn);
+            let decision = action
+            let new_bet = amount
             console.log("la decision fue: "+decision)
             if (decision === "fold") {
                 for (let j = 0; j < players.length; j++) {
