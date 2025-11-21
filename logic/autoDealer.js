@@ -149,10 +149,8 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
                 option: false
             });
 
-            let decision2 = ""
-            let new_bet = 0
             console.log(`Turno de ${playerinTurn}`)
-            [decision2, new_bet] = await waitForDecision(playerinTurn);
+            let {decision2, new_bet} = await waitForDecision(playerinTurn);
 
             //si el jugador decide foldear, se recorre el vector de jugadores buscando el id del jugador y se expulsa del vector
             if (decision2 === "fold") {
@@ -221,9 +219,7 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
             }
         } else {
             //si el jugador al que se le pregunta no es el ultimo de la lista
-            let decision = ""
-            let new_bet = 0
-
+            
             if (initial_bet > 0) {
                 //si el jugador no ha puesto fichas en la mesa, se ejecuta action que no da la opcion de chequear
                 io.to(mesa.Id).emit("turn:active", {
@@ -239,7 +235,7 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
                 });
             }
 
-            [decision, new_bet] = await waitForDecision(pre_players[i].nombre);
+            let {decision, new_bet} = await waitForDecision(pre_players[i].nombre);
 
             if (decision === "fold") {
                 for (let j = 0; j < players.length; j++) {
@@ -345,10 +341,8 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
                 mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
                 return [false, mesa]
             }
-            let decision2 = ""
-            let new_bet = 0
 
-            [decision2, new_bet] = await waitForDecision(pre_players[i].nombre);
+            let {decision2, new_bet} = await waitForDecision(pre_players[i].nombre);
 
             if (decision2 === "fold") {
                 for (let j = 0; j < players.length; j++) {
@@ -426,9 +420,8 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
                 }
             }
         } else {
-            let decision = ""
-            let new_bet = 0
-            [decision, new_bet] = await waitForDecision(pre_players[i].nombre);
+            
+            let {decision, new_bet} = await waitForDecision(pre_players[i].nombre);
 
             if (decision === "fold") {
                 for (let j = 0; j < players.length; j++) {
