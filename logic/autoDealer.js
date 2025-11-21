@@ -328,7 +328,7 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
 export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
     let players = pre_players
     pre_players = reorganizarDesdeIndice(pre_players, indice)
-
+    console.log("Entra a raise")
     for (let i = 0; i < pre_players.length - 1; i++) {
         //aqui en vez de parar en el ultimo de la lista, para en el penultimo
         //ya que cuando se hace raise, al ultimo al que se le pregunta es a quien está a la derecha de quien hizo raise
