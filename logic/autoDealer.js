@@ -518,7 +518,7 @@ export async function raise(pre_players, initial_bet, indice, mesa) {
 export async function preflop(pre_players, mesa, io, sendChatMessage) {
     console.log("Estoy buscando en: " + mesa.Id)
     const table = await Table.findById(mesa.Id).select("currentHand")
-    table.currentHand.orderPreFlop = pre_players;
+    table.currentHand.orderPreFlop = pre_players.map(p => p.nombre);
     await table.save();
     //al inicio de cada partida hace que la cantidad de fichas puestas por cada jugador en la mesa sea cero
     for (let y = 0; y < pre_players.length; y++) {
@@ -554,7 +554,7 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
     //organiza el vector auxiliar en el orden de juego (1. SB, 2.BB, ..., ultimo. dealer)
     const players = in_game_order(pre_players);
     io.to(mesa.Id).emit("dealer", players.at(-1).nombre)
-    table.currentHand.order = players;
+    table.currentHand.order = players.map(p => p.nombre);
     await table.save();
     //asignamos la initial_bet que en este caso seria la BB, hay que cambiarlo para que saque esta informacion de la mesa directamente
 
