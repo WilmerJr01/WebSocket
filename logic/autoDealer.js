@@ -644,7 +644,7 @@ export async function thorn(table, io, pre_players, mesa, mazo, cant_jug, sendCh
     console.log(`Mesa: ${mesa.mano[0].cara}${mesa.mano[0].palo}, ${mesa.mano[1].cara}${mesa.mano[1].palo}, ${mesa.mano[2].cara}${mesa.mano[2].palo}, ${mesa.mano[3].cara}${mesa.mano[3].palo}`)
     console.log("--------------------")
 
-    const [players2, mesa2] = await turnos(pre_players, players, mesa, 0)
+    const [players2, mesa2] = await turnos(table, io, pre_players, players, mesa, 0)
     console.log(mesa2.mano)
 
     if (players2 != false) {
