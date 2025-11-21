@@ -358,7 +358,7 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet,
 //una lista pre_players, un initial_bet y una mesa que hacen lo mismo que en turnos
 //un indice que es desde donde se va a reordenar la lista pre_players para preguntar que hacer
 //funciona basicamente igual que turnos y retorna lo mismo
-export async function raise(table, io, pre_players, initial_bet, indice, mesa, orden) {
+export async function raise(table, io, pre_players, initial_bet, indice, mesa, orden, sendChatMessage) {
     let players = pre_players
     if(pre_players.length > 2){
         pre_players = reorganizarDesdeIndice(pre_players, indice)
