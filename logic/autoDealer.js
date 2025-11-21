@@ -984,7 +984,7 @@ async function startHand(io, tableId, sendChatMessage) {
         isSystem: true,
     });
 
-    //const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
+    const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
     console.log("Llego a starthand: " + juego.Id)
     
 
@@ -994,7 +994,6 @@ async function startHand(io, tableId, sendChatMessage) {
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            const [Lista_jugadores, juego] = buildListaJugadores(tableId)
             preflop(Lista_jugadores, juego, io, sendChatMessage)
         });
 
