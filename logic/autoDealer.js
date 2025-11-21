@@ -284,9 +284,7 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
                 io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
 
                 if(players.length == 2){
-                    let auxpla = []
-                    auxpla[0] = pre_players[1]
-                    auxpla[1] = pre_players[0]
+                    
                     return await raise(table, io, auxpla, new_bet, 0, mesa)
                 } else {
                     for (let j = 0; j < players.length; j++) {
@@ -343,7 +341,15 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
     let players = pre_players
     if(pre_players.length > 2){
         pre_players = reorganizarDesdeIndice(pre_players, indice)
-    } 
+    } else {
+        if(indice == 0){
+            let auxpla = []
+            auxpla[0] = pre_players[1]
+            auxpla[1] = pre_players[0]
+            pre_players[0] = auxpla[0]
+            pre_players[1] = auxpla[1]
+        }
+    }
     
     console.log("Entra a raise")
     for (let i = 0; i < pre_players.length - 1; i++) {
@@ -443,11 +449,6 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
 
                 if (players.length > 1) {
                     console.log(mesa.mano)
-                    if(pre_players.length==2 && indice == 0){
-                        let aux = players[0]
-                        players[0] = players[1]
-                        players[1] = aux
-                    }
                     return [players, mesa]
                 } else {
                     //funcion_mostrarGanador()
