@@ -546,9 +546,14 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
         for (const p of pre_players) {
             cards[p.id] = p.mano.map(card => `${card.cara}${card.palo}`);
         }
-
+        sendChatMessage({
+            tableId: mesa.Id,
+            text: `Jugador ${indice}: ${pre_players[indice].mano[posicionCarta].cara}${pre_players[indice].mano[posicionCarta].palo}`,
+            isSystem: true
+        })
         io.to(mesa.Id).emit("cards:update", cards);
     }
+
 
 
     //organiza el vector auxiliar en el orden de juego (1. SB, 2.BB, ..., ultimo. dealer)
