@@ -680,7 +680,7 @@ export async function river(table, io, pre_players, mesa, mazo, cant_jug, sendCh
     console.log(`Mesa: ${mesa.mano[0].cara}${mesa.mano[0].palo}, ${mesa.mano[1].cara}${mesa.mano[1].palo}, ${mesa.mano[2].cara}${mesa.mano[2].palo}, ${mesa.mano[3].cara}${mesa.mano[3].palo}, ${mesa.mano[4].cara}${mesa.mano[4].palo}`)
     console.log("--------------------")
 
-    const [players2, mesa2] = await turnos(pre_players, players, mesa, 0)
+    const [players2, mesa2] = await turnos(table, io, pre_players, players, mesa, 0)
 
     if (players2 != false) {
         //si queda mas de un jugador en la lista para este punto, se ejecuta la funcion "definicion" que evalua que mano es mejor entre los jugadores de la mesa
