@@ -174,6 +174,7 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
                 } else {
                     //si luego de foldear hay mas de un jugador en la lista, se retorna la lista de jugadores en la mesa y la
                     //mesa para tener acceso a la informacion en ella (Las fichas que ya estan en ella)
+                    console.log(mesa.mano)
                     return [players, mesa]
                 }
                 //si el ultimo jugador decide hacer raise se pregunta cuanto con la funcion howmuch
@@ -204,6 +205,7 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
             } else {
                 //si la decision es diferente a raise o fold, o sea check, se retorna la lista y la mesa para avanzar de ronda
                 if (players.length > 1) {
+                    console.log(mesa.mano)
                     return [players, mesa]
                 } else {
                     players[0].fichas = players[0].fichas + mesa.bet
@@ -359,6 +361,7 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                     //reorganiza el vector de jugadores para rotar la BB
                     mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
+                    
                     return [false, mesa]
 
                 }
@@ -405,6 +408,7 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
                 io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
 
                 if (players.length > 1) {
+                    console.log(mesa.mano)
                     return [players, mesa]
                 } else {
                     //funcion_mostrarGanador()
