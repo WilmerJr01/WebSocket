@@ -436,6 +436,12 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
                 io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
 
                 if (players.length > 1) {
+                    console.log(mesa.mano)
+                    if(pre_players.length==2 && indice == 0){
+                        let aux = players[0]
+                        players[0] = players[1]
+                        players[1] = aux
+                    }
                     return [players, mesa]
                 } else {
                     //funcion_mostrarGanador()
