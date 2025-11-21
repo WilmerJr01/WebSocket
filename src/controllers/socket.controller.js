@@ -124,7 +124,7 @@ export const configureSocket = (io) => {
     });
 
     // ---------- Conexión ----------
-    io.on("connect", async (socket) => {
+    io.on("connection", async (socket) => {
         console.log("✅ Socket conectado:", socket.id);
 
         // Si vino en handshake, registra

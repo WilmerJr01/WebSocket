@@ -347,12 +347,22 @@ export async function preflop(pre_players, mesa) {
 
     const mazoMezclado = [...mazo].sort(() => Math.random() - 0.5);
     let aux = 0;
+
+    /*
     for(let y = 0; y < pre_players.length; y++){
       pre_players[y].mano[0] = mazoMezclado[aux]
       pre_players[y].mano[1] = mazoMezclado[aux+1]
       aux = aux + 2
     }
+    */
 
+    for (let y = 0; y < pre_players.length * 2; y++) {
+        let indice = y % pre_players.length
+        pre_players[indice].mano[Math.floor(aux / pre_players.length)] = mazoMezclado[aux]
+        
+        aux = aux + 1
+        //mostrar_cartasJugadores()
+    }
 
     //
 

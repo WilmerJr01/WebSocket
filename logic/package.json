@@ -1,3 +1,7 @@
 {
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "dev": "prueba_juego.js"
+  } 
+  
 }

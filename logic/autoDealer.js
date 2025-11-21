@@ -7,7 +7,7 @@ import { stdin as input, stdout as output } from 'node:process';
 import { mazo } from './cartas.js';
 import { mejor_mano } from './ganador.js';
 import { verificar } from './Manos.js';
-import { Player, Mesa } from "./clases.js";
+import { Player, Mesa, Carta } from "./clases.js";
 
 //reorganiza el vector de jugadores para rotar los roles (dealer, SB, BB)
 function reorganizarDesdeIndice(v, indice) {
@@ -72,9 +72,8 @@ export async function action(pre_player) {
 }
 
 //funcion para preguntar cuanto se va a subir en caso de que un jugador decida hacer raise
-export async function howmuch(pre_player, bet) {
-    console.log(`PLAYER ${pre_player.nombre}`);
-    const respuesta = await preguntar('¿Cuanto desea subir?: ');
+export function howmuch(pre_player, bet) {
+    const respuesta = bet
     const numero = Number(respuesta);
 
     if (Number.isInteger(numero)) {
@@ -83,16 +82,10 @@ export async function howmuch(pre_player, bet) {
                 return numero
             } else {
                 console.log('El monto digitado debe ser mayor a la apuesta actual');
-                return await howmuch(pre_player, bet); // Reintenta si la entrada no es válida
             }
         } else {
             console.log('El monto digitado supera su capacidad');
-            return await howmuch(pre_player, bet); // Reintenta si la entrada no es válida
         }
-    }
-    else {
-        console.log('Entrada no válida');
-        return await howmuch(pre_player, bet); // Reintenta si la entrada no es válida
     }
 }
 
@@ -121,12 +114,13 @@ export async function action_BB(pre_player) {
 //un "initial_bet" que seria lo que se debe pagar para entrar o para seguir en la mesa
 
 //retorna la lista de jugadores que avanzan de ronda y la mesa con sus datos actualizados (el pozo o la cantidad de fichas en la mesa)
-export async function turnos(pre_players, players, mesa, initial_bet) {
+export async function turnos(io, pre_players, players, mesa, initial_bet) {
 
+    const table = await Table.findById(mesa.Id).select("currentHand")
     for (let i = 0; i < pre_players.length; i++) {
-        //console.log("-----------------------")    
-        //console.log(`Mano ${pre_players[i].nombre}: ${pre_players[i].mano[0].cara}${pre_players[i].mano[0].palo}, ${pre_players[i].mano[1].cara}${pre_players[i].mano[1].palo}`)
 
+        table.currentHand.currentTurn = pre_players[i].nombre;
+        await table.save()
         //pregunta si el jugador al que se le está preguntando es el ultimo en la lista
         if (i == pre_players.length - 1) {
             //si es el ultimo jugador y la lista de jugadores solo tiene un jugador en ella, se declara como ganador (todos foldearon)
@@ -136,6 +130,10 @@ export async function turnos(pre_players, players, mesa, initial_bet) {
 
                 //se le suman las fichas de la mesa a su cuenta de fichas personal
                 players[0].fichas = players[0].fichas + mesa.bet
+                table.currentHand.chips.set(pre_players[0].nombre, players[0].fichas);
+                await table.save()
+
+                io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                 //reorganiza el vector de jugadores para rotar la BB
                 mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
                 return [false, mesa]
@@ -143,7 +141,24 @@ export async function turnos(pre_players, players, mesa, initial_bet) {
             //si el jugador es el ultimo pero aun hay mas jugadores en la lista, pregunta que hacer
             //la variable decision2 lo que debe esperar es la respuesta que devuelva el boton que presione el jugador 
             //por lo que el "await action_BB" debe ser cambiado por un await que espere el boton que presione el jugador
-            const decision2 = await action_BB(pre_players[i])
+            io.to(mesa.Id).emit("turn:active", {
+                playerId: pre_players[i].nombre,
+                option: false
+            });
+
+            let decision2 = ""
+            let new_bet = 0
+            io.on("connection", (socket) => {
+                socket.on("action:send", async (payload) => {
+                    const { tableId, jugador, action, amount } = payload;
+                    if (jugador && jugador === pre_players[i].nombre) {
+                        decision2 = action
+                        if (amount) {
+                            new_bet = howmuch(amount)
+                        }
+                    }
+                })
+            })
             //si el jugador decide foldear, se recorre el vector de jugadores buscando el id del jugador y se expulsa del vector
             if (decision2 === "fold") {
                 for (let j = 0; j < players.length; j++) {
@@ -156,6 +171,10 @@ export async function turnos(pre_players, players, mesa, initial_bet) {
                     //funcion_mostrarGanador()
                     //se suman las fichas a su cuenta personal de fichas  
                     players[0].fichas = players[0].fichas + mesa.bet
+                    table.currentHand.chips.set(pre_players[0].nombre, players[0].fichas + mesa.bet);
+                    await table.save()
+
+                    io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                     //reorganiza el vector de jugadores para rotar la BB
                     mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
                     return [false, mesa]
@@ -168,16 +187,25 @@ export async function turnos(pre_players, players, mesa, initial_bet) {
                 //esta funcion tambien debe ser cambiada por una que reciba la respuesta de frontend
             } else if (decision2 === "raise") {
                 //new_bet va a ser la cantidad para entrar o seguir en la mesa, o sea el valor del raise
-                const new_bet = await howmuch(pre_players[i], initial_bet)
-
                 //una vez se reciba cuando subió el jugador, se resta de su cuenta de fichas la cantidad subida 
                 //(la cantidad subida es igual a lo digitado (new_bet) menos lo que se haya puesto en la mesa en esa ronda)
                 pre_players[i].fichas = pre_players[i].fichas - (new_bet - pre_players[i].bet)
-                //tambien se actualiza la cantidad de fichas en la mesa
+                table.currentHand.chips.set(pre_players[i].nombre, pre_players[i].fichas);
+                await table.save()
+
+                io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
+                //tambien se actualiza la cantidad de fichas en la mesa (pot)
                 mesa.bet = mesa.bet + (new_bet - pre_players[i].bet)
+                table.currentHand.pot = mesa.bet
+                await table.save()
+
+                io.to(mesa.Id).emit("pot:update", { tableId: mesa.Id, pot: table.currentHand.pot });
                 //y se actualiza lo que el jugador ha puesto en la mesa
                 pre_players[i].bet = new_bet
+                table.currentHand.bets.set(pre_players[i].nombre, pre_players[i].bet)
+                await table.save()
 
+                io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
                 //se ejecuta la funcion raise que es basicamente otra funcion turnos pero con la lista reordenada y con una nueva apuesta inicial
                 return await raise(players, new_bet, 2, mesa)/////////
             } else {
@@ -186,6 +214,11 @@ export async function turnos(pre_players, players, mesa, initial_bet) {
                     return [players, mesa]
                 } else {
                     players[0].fichas = players[0].fichas + mesa.bet
+                    table.currentHand.chips.set(pre_players[0].nombre, pre_players[0].fichas);
+                    await table.save()
+
+
+                    io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                     //reorganiza el vector de jugadores para rotar la BB
                     mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
                     return [false, mesa]
@@ -193,14 +226,36 @@ export async function turnos(pre_players, players, mesa, initial_bet) {
             }
         } else {
             //si el jugador al que se le pregunta no es el ultimo de la lista
-            let decision = "a"
+            let decision = ""
+            let new_bet = 0
+
             if (initial_bet > 0) {
                 //si el jugador no ha puesto fichas en la mesa, se ejecuta action que no da la opcion de chequear
-                decision = await action(pre_players[i]);
+                io.to(mesa.Id).emit("turn:active", {
+                    playerId: pre_players[i].nombre,
+                    option: true
+                });
+
             } else {
                 //si el jugador ya puso fichas en la mesa (es la BB) se ejecuta action_BB que da la opcion de chequear
-                decision = await action_BB(pre_players[i]);
+                io.to(mesa.Id).emit("turn:active", {
+                    playerId: pre_players[i].nombre,
+                    option: false
+                });
             }
+
+            io.on("connection", (socket) => {
+                socket.on("action:send", async (payload) => {
+                    const { tableId, jugador, action, amount } = payload;
+                    if (jugador && jugador === pre_players[i].nombre) {
+                        decision = action
+                        if (amount) {
+                            new_bet = howmuch(amount)
+                        }
+                    }
+                })
+            })
+
             if (decision === "fold") {
                 for (let j = 0; j < players.length; j++) {
                     if (players[j].nombre === pre_players[i].nombre) {
@@ -216,11 +271,24 @@ export async function turnos(pre_players, players, mesa, initial_bet) {
                 ////
             } else if (decision === "raise") {
                 // el raise funciona igual
-                const new_bet = await howmuch(pre_players[i], initial_bet)
-
                 pre_players[i].fichas = pre_players[i].fichas - (new_bet - pre_players[i].bet)
+                table.currentHand.chips.set(pre_players[i].nombre, pre_players[i].fichas);
+                await table.save()
+
+                io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
+
                 mesa.bet = mesa.bet + (new_bet - pre_players[i].bet)
+                table.currentHand.pot = mesa.bet
+                await table.save()
+
+                io.to(mesa.Id).emit("pot:update", { tableId: mesa.Id, pot: table.currentHand.pot });
+
                 pre_players[i].bet = pre_players[i].bet + (new_bet - pre_players[i].bet)
+                table.currentHand.bets.set(pre_players[i].nombre, pre_players[i].bet)
+                await table.save()
+
+                io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
+
 
                 for (let j = 0; j < players.length; j++) {
 
@@ -238,8 +306,23 @@ export async function turnos(pre_players, players, mesa, initial_bet) {
             } else if (decision === "limp") {
                 //si el jugador hace call o "limpea", se ejecuta el mismo proceso que como is hiciera raise pero cobrando lo de la apuesta actual
                 pre_players[i].fichas = pre_players[i].fichas - (initial_bet - pre_players[i].bet)
+                table.currentHand.chips.set(pre_players[i].nombre, pre_players[i].fichas);
+                await table.save()
+
+                io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
+
                 mesa.bet = mesa.bet + (initial_bet - pre_players[i].bet)
+                table.currentHand.pot = mesa.bet
+                await table.save()
+
+                io.to(mesa.Id).emit("pot:update", { tableId: mesa.Id, pot: table.currentHand.pot });
+
                 pre_players[i].bet = pre_players[i].bet + (initial_bet - pre_players[i].bet)
+                table.currentHand.bets.set(pre_players[i].nombre, pre_players[i].bet)
+                await table.save()
+
+                io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
+
 
             } //aqui habia un else vacio
         }
@@ -256,6 +339,7 @@ export async function turnos(pre_players, players, mesa, initial_bet) {
 export async function raise(pre_players, initial_bet, indice, mesa) {
     let players = pre_players
     pre_players = reorganizarDesdeIndice(pre_players, indice)
+    const table = await Table.findById(mesa.Id).select("currentHand")
 
     for (let i = 0; i < pre_players.length - 1; i++) {
         //aqui en vez de parar en el ultimo de la lista, para en el penultimo
@@ -266,11 +350,28 @@ export async function raise(pre_players, initial_bet, indice, mesa) {
             if (players.length < 2) {
                 //funcion_mostrarGanador()
                 players[0].fichas = players[0].fichas + mesa.bet
+                table.currentHand.chips.set(pre_players[0].nombre, pre_players[0].fichas);
+                await table.save()
+
+                io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
+
                 //reorganiza el vector de jugadores para rotar la BB
                 mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
                 return [false, mesa]
             }
-            const decision2 = await action(pre_players[i])
+            let decision2 = ""
+            let new_bet = 0
+            io.on("connection", (socket) => {
+                socket.on("action:send", async (payload) => {
+                    const { tableId, jugador, action, amount } = payload;
+                    if (jugador && jugador === pre_players[i].nombre) {
+                        decision2 = action
+                        if (amount) {
+                            new_bet = howmuch(amount)
+                        }
+                    }
+                })
+            })
             if (decision2 === "fold") {
                 for (let j = 0; j < players.length; j++) {
                     if (players[j].nombre === pre_players[i].nombre) {
@@ -280,17 +381,33 @@ export async function raise(pre_players, initial_bet, indice, mesa) {
                 if (players.length < 2) {
                     //funcion_mostrarGanador()
                     players[0].fichas = players[0].fichas + mesa.bet
+                    table.currentHand.chips.set(pre_players[0].nombre, pre_players[0].fichas);
+                    await table.save()
 
+                    io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                     //reorganiza el vector de jugadores para rotar la BB
                     mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
                     return [false, mesa]
 
                 }
             } else if (decision2 === "raise") {
-                const new_bet = await howmuch(pre_players[i], initial_bet)
                 pre_players[i].fichas = pre_players[i].fichas - (new_bet - pre_players[i].bet)
+                table.currentHand.chips.set(pre_players[i].nombre, pre_players[i].fichas);
+                await table.save()
+
+                io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
+
                 mesa.bet = mesa.bet + (new_bet - pre_players[i].bet)
-                pre_players[i].bet = new_bet
+                table.currentHand.pot = mesa.bet
+                await table.save()
+
+                io.to(mesa.Id).emit("pot:update", { tableId: mesa.Id, pot: table.currentHand.pot });
+
+                pre_players[i].bet = pre_players[i].bet + (new_bet - pre_players[i].bet)
+                table.currentHand.bets.set(pre_players[i].nombre, pre_players[i].bet)
+                await table.save()
+
+                io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
                 for (let j = 0; j < players.length; j++) {
                     if (players[j].nombre === pre_players[i].nombre) {
                         return await raise(players, new_bet, j + 1, mesa)
@@ -298,14 +415,32 @@ export async function raise(pre_players, initial_bet, indice, mesa) {
                 }
             } else {
                 pre_players[i].fichas = pre_players[i].fichas - (initial_bet - pre_players[i].bet)
+                table.currentHand.chips.set(pre_players[i].nombre, pre_players[i].fichas);
+                await table.save()
+
+                io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
+
                 mesa.bet = mesa.bet + (initial_bet - pre_players[i].bet)
+                table.currentHand.pot = mesa.bet
+                await table.save()
+
+                io.to(mesa.Id).emit("pot:update", { tableId: mesa.Id, pot: table.currentHand.pot });
+
                 pre_players[i].bet = pre_players[i].bet + (initial_bet - pre_players[i].bet)
+                table.currentHand.bets.set(pre_players[i].nombre, pre_players[i].bet)
+                await table.save()
+
+                io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
 
                 if (players.length > 1) {
                     return [players, mesa]
                 } else {
                     //funcion_mostrarGanador()
                     players[0].fichas = players[0].fichas + mesa.bet
+                    table.currentHand.chips.set(pre_players[0].nombre, pre_players[0].fichas);
+                    await table.save()
+
+                    io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
 
                     //reorganiza el vector de jugadores para rotar la BB
                     mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
@@ -313,7 +448,19 @@ export async function raise(pre_players, initial_bet, indice, mesa) {
                 }
             }
         } else {
-            const decision = await action(pre_players[i]);
+            let decision = ""
+            let new_bet = 0
+            io.on("connection", (socket) => {
+                socket.on("action:send", async (payload) => {
+                    const { tableId, jugador, action, amount } = payload;
+                    if (jugador && jugador === pre_players[i].nombre) {
+                        decision = action
+                        if (amount) {
+                            new_bet = howmuch(amount)
+                        }
+                    }
+                })
+            })
             if (decision === "fold") {
                 for (let j = 0; j < players.length; j++) {
                     if (players[j].nombre === pre_players[i].nombre) {
@@ -321,10 +468,23 @@ export async function raise(pre_players, initial_bet, indice, mesa) {
                     }
                 }
             } else if (decision === "raise") {
-                const new_bet = await howmuch(pre_players[i], initial_bet)
                 pre_players[i].fichas = pre_players[i].fichas - (new_bet - pre_players[i].bet)
+                table.currentHand.chips.set(pre_players[i].nombre, pre_players[i].fichas);
+                await table.save()
+
+                io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
+
                 mesa.bet = mesa.bet + (new_bet - pre_players[i].bet)
-                pre_players[i].bet = new_bet
+                table.currentHand.pot = mesa.bet
+                await table.save()
+
+                io.to(mesa.Id).emit("pot:update", { tableId: mesa.Id, pot: table.currentHand.pot });
+
+                pre_players[i].bet = pre_players[i].bet + (new_bet - pre_players[i].bet)
+                table.currentHand.bets.set(pre_players[i].nombre, pre_players[i].bet)
+                await table.save()
+
+                io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
                 for (let j = 0; j < players.length; j++) {
                     if (players[j].nombre === pre_players[i].nombre) {
                         return await raise(players, new_bet, j + 1, mesa)
@@ -332,17 +492,34 @@ export async function raise(pre_players, initial_bet, indice, mesa) {
                 }
             } else {
                 pre_players[i].fichas = pre_players[i].fichas - (initial_bet - pre_players[i].bet)
+                table.currentHand.chips.set(pre_players[i].nombre, pre_players[i].fichas);
+                await table.save()
+
+                io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
+
                 mesa.bet = mesa.bet + (initial_bet - pre_players[i].bet)
+                table.currentHand.pot = mesa.bet
+                await table.save()
+
+                io.to(mesa.Id).emit("pot:update", { tableId: mesa.Id, pot: table.currentHand.pot });
+
                 pre_players[i].bet = pre_players[i].bet + (initial_bet - pre_players[i].bet)
+                table.currentHand.bets.set(pre_players[i].nombre, pre_players[i].bet)
+                await table.save()
+
+                io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
+
             }
         }
     }
 }
 
 //preflop, recibe la lista de jugadores y la mesa con su informacion inicial
-export async function preflop(pre_players, mesa, io, userIdToSocket) {
-    console.log("Estoy buscando en: "+mesa.Id)
+export async function preflop(pre_players, mesa, io, sendChatMessage) {
+    console.log("Estoy buscando en: " + mesa.Id)
     const table = await Table.findById(mesa.Id).select("currentHand")
+    table.currentHand.orderPreFlop = pre_players;
+    await table.save();
     //al inicio de cada partida hace que la cantidad de fichas puestas por cada jugador en la mesa sea cero
     for (let y = 0; y < pre_players.length; y++) {
         pre_players[y].bet = 0
@@ -357,16 +534,28 @@ export async function preflop(pre_players, mesa, io, userIdToSocket) {
     const mazoMezclado = [...mazo].sort(() => Math.random() - 0.5);
     let aux = 0;
     //reparte las cartas a cada jugador (una por una, no entrega las dos a en seguida)
+    const cards = {};
+
     for (let y = 0; y < pre_players.length * 2; y++) {
-        let indice = y % pre_players.length
-        pre_players[indice].mano[Math.floor(aux / pre_players.length)] = mazoMezclado[aux]
-        aux = aux + 1
-        //mostrar_cartasJugadores()
+        const indice = y % pre_players.length;
+        const posicionCarta = Math.floor(aux / pre_players.length);
+
+        pre_players[indice].mano[posicionCarta] = mazoMezclado[aux];
+        aux++;
+
+        for (const p of pre_players) {
+            cards[p.id] = p.mano.map(card => `${card.cara}${card.palo}`);
+        }
+
+        io.to(mesa.Id).emit("cards:update", cards);
     }
 
 
     //organiza el vector auxiliar en el orden de juego (1. SB, 2.BB, ..., ultimo. dealer)
-    let players = in_game_order(pre_players);
+    const players = in_game_order(pre_players);
+    io.to(mesa.Id).emit("dealer", players.at(-1).nombre)
+    table.currentHand.order = players;
+    await table.save();
     //asignamos la initial_bet que en este caso seria la BB, hay que cambiarlo para que saque esta informacion de la mesa directamente
 
 
@@ -393,36 +582,34 @@ export async function preflop(pre_players, mesa, io, userIdToSocket) {
 
     //actualiza la cantidad de fichas que estan puestas en la mesa (la BB + la SB)
     mesa.bet = initial_bet + initial_bet / 2
-    table.currentHand.pot= initial_bet + initial_bet/2
+    table.currentHand.pot = initial_bet + initial_bet / 2
     await table.save()
-    if (io){
+    if (io) {
         console.log("Tengo el socket")
     }
-    io.to(mesa.Id).emit("pot:update", {tableId : mesa.Id, pot : table.currentHand.pot});
-    console.log("Pot: "+table.currentHand.pot)
-    /*
-    //empieza a preguntar que hacer a cada jugador ejecutando "turnos"
-    const [players2, mesa2] = await turnos(pre_players, players, mesa, initial_bet)
+    io.to(mesa.Id).emit("pot:update", { tableId: mesa.Id, pot: table.currentHand.pot });
+    console.log("Pot: " + table.currentHand.pot)
 
+    //empieza a preguntar que hacer a cada jugador ejecutando "turnos"
+    const [players2, mesa2] = await turnos(io, pre_players, players, mesa, initial_bet)
     //verifica que retorno la funcion turnos
     if (players2 != false) {
         //si retorno algo en la lista players2, pasa a la siguiente ronda
 
         //timer
-        flop(players2, mesa2, mazoMezclado)
+        flop(io, players2, mesa2, mazoMezclado, sendChatMessage)
     } else {
         //si retornó false en players2 significa que todos foldearon y hubo un ganador en preflop, se vuelve a ejecutar preflop
         //esperarNuevaPartida()
-        preflop(mesa2.jugadores, mesa2)
+        preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
         //hay que poner algun timer aqui para que se espere un tiempo entre una partida y otra
     }
-    */
 
     return players;
 }
 
-export async function flop(pre_players, mesa, mazo) {
-
+export async function flop(io, pre_players, mesa, mazo, sendChatMessage) {
+    const table = await Table.findById(mesa.Id).select("currentHand")
     console.log("--------------------")
     console.log("FLOP")
     console.log("--------------------")
@@ -438,6 +625,13 @@ export async function flop(pre_players, mesa, mazo) {
     mesa.mano[0] = mazo[cant_jug + 2]
     mesa.mano[1] = mazo[cant_jug + 3]
     mesa.mano[2] = mazo[cant_jug + 4]
+    const cards = mesa.mano.map(card => `${card.cara}${card.palo}`)
+    io.to(mesa.Id).emit("community:update", cards)
+    sendChatMessage({
+        tableId: mesa.Id,
+        text: `Mesa: ${mesa.mano[0].cara}${mesa.mano[0].palo}, ${mesa.mano[1].cara}${mesa.mano[1].palo}, ${mesa.mano[2].cara}${mesa.mano[2].palo}`,
+        isSystem: true
+    })
     //aqui se ejecutaria la funcion para mostrar las cartas, las primeras 3 del flop
     //mostrar_cartas()
     console.log("--------------------")
@@ -445,21 +639,22 @@ export async function flop(pre_players, mesa, mazo) {
     console.log("--------------------")
 
     //pregunta que hacer luego de mostrar las cartas
-    const [players2, mesa2] = await turnos(pre_players, players, mesa, 0)
+    const [players2, mesa2] = await turnos(io, pre_players, players, mesa, 0)
 
     if (players2 != false) {
         //si hay mas de un jugador en la lista, avanza a la primera ronda
-        thorn(players2, mesa2, mazo, cant_jug)
+        thorn(io, players2, mesa2, mazo, cant_jug, sendChatMessage)
     } else {
         //sino, se inicia otra partida
         //esperarNuevaPartida()
-        preflop(mesa2.jugadores, mesa2)
+        preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
     }
 
 }
 
 
-export async function thorn(pre_players, mesa, mazo, cant_jug) {
+export async function thorn(io, pre_players, mesa, mazo, cant_jug, sendChatMessage) {
+    const table = await Table.findById(mesa.Id).select("currentHand")
     console.log("--------------------")
     console.log("THORN")
     console.log("--------------------")
@@ -468,6 +663,13 @@ export async function thorn(pre_players, mesa, mazo, cant_jug) {
         pre_players[y].bet = 0
     }
     mesa.mano[3] = mazo[cant_jug + 6]
+    sendChatMessage({
+        tableId: mesa.Id,
+        text: `Mesa: ${mesa.mano[0].cara}${mesa.mano[0].palo}, ${mesa.mano[1].cara}${mesa.mano[1].palo}, ${mesa.mano[2].cara}${mesa.mano[2].palo}, ${mesa.mano[3].cara}${mesa.mano[3].palo}`,
+        isSystem: true
+    })
+    const cards = mesa.mano.map(card => `${card.cara}${card.palo}`)
+    io.to(mesa.Id).emit("community:update", cards)
     //mostrar_cartas()
     console.log("--------------------")
     console.log(`Mesa: ${mesa.mano[0].cara}${mesa.mano[0].palo}, ${mesa.mano[1].cara}${mesa.mano[1].palo}, ${mesa.mano[2].cara}${mesa.mano[2].palo}, ${mesa.mano[3].cara}${mesa.mano[3].palo}`)
@@ -476,15 +678,16 @@ export async function thorn(pre_players, mesa, mazo, cant_jug) {
     const [players2, mesa2] = await turnos(pre_players, players, mesa, 0)
 
     if (players2 != false) {
-        river(players2, mesa2, mazo, cant_jug)
+        river(io, players2, mesa2, mazo, cant_jug, sendChatMessage)
     } else {
         //esperarNuevaPartida()
-        preflop(mesa2.jugadores, mesa2)
+        preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
     }
 }
 
 
-export async function river(pre_players, mesa, mazo, cant_jug) {
+export async function river(io, pre_players, mesa, mazo, cant_jug, sendChatMessage) {
+    const table = await Table.findById(mesa.Id).select("currentHand")
     console.log("--------------------")
     console.log("RIVER")
     console.log("--------------------")
@@ -493,6 +696,14 @@ export async function river(pre_players, mesa, mazo, cant_jug) {
         pre_players[y].bet = 0
     }
     mesa.mano[4] = mazo[cant_jug + 8]
+    sendChatMessage({
+        tableId: mesa.Id,
+        text: `Mesa: ${mesa.mano[0].cara}${mesa.mano[0].palo}, ${mesa.mano[1].cara}${mesa.mano[1].palo}, ${mesa.mano[2].cara}${mesa.mano[2].palo}, ${mesa.mano[3].cara}${mesa.mano[3].palo}, ${mesa.mano[4].cara}${mesa.mano[4].palo}`,
+        isSystem: true
+    })
+
+    const cards = mesa.mano.map(card => `${card.cara}${card.palo}`)
+    io.to(mesa.Id).emit("community:update", cards)
     //mostrar_cartas()
     console.log("--------------------")
     console.log(`Mesa: ${mesa.mano[0].cara}${mesa.mano[0].palo}, ${mesa.mano[1].cara}${mesa.mano[1].palo}, ${mesa.mano[2].cara}${mesa.mano[2].palo}, ${mesa.mano[3].cara}${mesa.mano[3].palo}, ${mesa.mano[4].cara}${mesa.mano[4].palo}`)
@@ -502,15 +713,16 @@ export async function river(pre_players, mesa, mazo, cant_jug) {
 
     if (players2 != false) {
         //si queda mas de un jugador en la lista para este punto, se ejecuta la funcion "definicion" que evalua que mano es mejor entre los jugadores de la mesa
-        definicion(players2, mesa2)
+        definicion(io, players2, mesa2, sendChatMessage)
     } else {
         //esperarNuevaPartida()
-        preflop(mesa2.jugadores, mesa2)
+        preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
     }
 }
 
 
-export async function definicion(pre_players, mesa) {
+export async function definicion(io, pre_players, mesa, sendChatMessage) {
+    const table = await Table.findById(mesa.Id).select("currentHand")
     console.log("--------------------")
     console.log("DEFINICION")
     console.log("--------------------")
@@ -527,6 +739,11 @@ export async function definicion(pre_players, mesa) {
         for (let i = 0; i < pre_players.length; i++) {
             if (winner.nombre === pre_players[i].nombre) {
                 pre_players[i].fichas = pre_players[i].fichas + mesa.bet
+                table.currentHand.chips.set(pre_players[i].nombre, pre_players[i].fichas);
+                await table.save()
+
+                io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
+
                 console.log(`GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`);
             }
         }
@@ -538,7 +755,19 @@ export async function definicion(pre_players, mesa) {
             for (let j = 0; j < winner.length; j++) {
                 if (winner[j].nombre === pre_players[i].nombre) {
                     pre_players[i].fichas = pre_players[i].fichas + bote
+                    table.currentHand.chips.set(pre_players[i].nombre, pre_players[i].fichas);
+                    await table.save()
+
+                    io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
+
                     console.log(`GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`);
+                    sendChatMessage({
+                        tableId: mesa.Id,
+                        text: `GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`,
+                        isSystem: true
+                    })
+                    //aqui actualizas el server con el ganador
+
                 }
             }
         }
@@ -547,7 +776,7 @@ export async function definicion(pre_players, mesa) {
     mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
     //se inicia una nueva partida
     //esperarNuevaPartida()
-    preflop(mesa.jugadores, mesa)
+    preflop(mesa.jugadores, mesa, io, sendChatMessage)
 
 }
 
@@ -572,8 +801,8 @@ async function startHand(io, tableId, userIdToSocket, sendChatMessage) {
     });
 
     const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
-    console.log("Llego a starthand: "+juego.Id)
-    await preflop(Lista_jugadores, juego, io, userIdToSocket)
+    console.log("Llego a starthand: " + juego.Id)
+    await preflop(Lista_jugadores, juego, io, sendChatMessage)
 
 
 
@@ -696,8 +925,9 @@ async function buildListaJugadores(tableId) {
     const tableUse = new Mesa()
     tableUse.BigBlind = table.bigBlind
     tableUse.SmallBlind = table.smallBlind
+    tableUse.jugadores = Lista_jugadores
     tableUse.Id = table._id.toString();
-    console.log("Le estoy pasando: "+tableUse.Id)
+    console.log("Le estoy pasando: " + tableUse.Id)
 
     return [Lista_jugadores, tableUse];
 }
