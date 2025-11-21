@@ -357,7 +357,7 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
             if (players.length < 2) {
                 //funcion_mostrarGanador()
                 players[0].fichas = players[0].fichas + mesa.bet
-                table.currentHand.chips.set(pre_players[0].nombre, pre_players[0].fichas);
+                table.currentHand.chips.set(players[0].nombre, players[0].fichas);
                 await table.save()
 
                 io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
@@ -384,7 +384,7 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
                 if (players.length < 2) {
                     //funcion_mostrarGanador()
                     players[0].fichas = players[0].fichas + mesa.bet
-                    table.currentHand.chips.set(pre_players[0].nombre, pre_players[0].fichas);
+                    table.currentHand.chips.set(players[0].nombre, players[0].fichas);
                     await table.save()
 
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
@@ -438,12 +438,12 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
 
                 if (players.length > 1) {
                     console.log(mesa.mano)
-                    if(pre_players.length==2){
-                        return [pre_players, mesa]
-                    } else {
-                        return [players, mesa]
+                    if(pre_players.length==2 && indice == 0){
+                        let aux = players[0]
+                        players[0] = players[1]
+                        players[1] = aux
                     }
-                    
+                    return [players, mesa]
                 } else {
                     //funcion_mostrarGanador()
                     players[0].fichas = players[0].fichas + mesa.bet
