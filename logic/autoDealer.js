@@ -686,7 +686,7 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
+            startHand(io, mesa.Id, sendChatMessage);
         });
 
         
@@ -754,7 +754,7 @@ export async function flop(table, io, pre_players, mesa, mazo, sendChatMessage) 
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
+            startHand(io, mesa.Id, sendChatMessage);
         });
     }
 
@@ -809,7 +809,7 @@ export async function thorn(table, io, pre_players, mesa, mazo, cant_jug, sendCh
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
+            startHand(io, mesa.Id, sendChatMessage);
         });
     }
 }
@@ -866,7 +866,7 @@ export async function river(table, io, pre_players, mesa, mazo, cant_jug, sendCh
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
+            startHand(io, mesa.Id, sendChatMessage);
         });
     }
 }
@@ -959,7 +959,7 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
+            startHand(io, mesa.Id, sendChatMessage);
         });
 
 }
@@ -968,7 +968,7 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
 // hasta aqui
 
 // Arranque real de mano (tu función ya preparada)
-async function startHand(io, tableId, userIdToSocket, sendChatMessage) {
+async function startHand(io, tableId, sendChatMessage) {
     // rota botón, blinds, set gamesPlayed, currentHand.inProgress=true,
     // repartir hole cards (emit privado), emits públicos, etc.
 
@@ -984,7 +984,7 @@ async function startHand(io, tableId, userIdToSocket, sendChatMessage) {
         isSystem: true,
     });
 
-    const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
+    //const [Lista_jugadores, juego] = await buildListaJugadores(tableId)
     console.log("Llego a starthand: " + juego.Id)
     
 
@@ -994,6 +994,7 @@ async function startHand(io, tableId, userIdToSocket, sendChatMessage) {
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
+            const [Lista_jugadores, juego] = buildListaJugadores(tableId)
             preflop(Lista_jugadores, juego, io, sendChatMessage)
         });
 
@@ -1016,7 +1017,7 @@ export async function maybeStartGame(io, tableId, userIdToSocket, sendChatMessag
 
     if (doc) {
         // Este proceso ganó la carrera → inicia mano
-        await startHand(io, tableId, userIdToSocket, sendChatMessage);
+        await startHand(io, tableId, sendChatMessage);
     }
 }
 
