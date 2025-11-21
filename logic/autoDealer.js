@@ -943,7 +943,16 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
                 io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
 
                 console.log(`GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`);
-
+                //mostrar cartas
+                await TimeBetweenGames(2, () => {
+                        sendChatMessage({
+                        tableId: mesa.Id,
+                        text: `Limpiando la mesa...`,
+                        isSystem: true
+                    })
+                        io.to(mesa.Id).emit("mostrar:cartas", true)
+                    });
+                
                 await TimeBetweenGames(3, () => {
                         sendChatMessage({
                         tableId: mesa.Id,
@@ -964,6 +973,15 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
         //si hay mas de uno, divide las fichas de la mesa entre el numero de ganadores y las reparte
         mesa.bet = mesa.bet - (mesa.bet % num_ganadores)
         let bote = mesa.bet / num_ganadores
+        //
+        await TimeBetweenGames(2, () => {
+            sendChatMessage({
+                tableId: mesa.Id,
+                text: `Limpiando la mesa...`,
+                isSystem: true
+            })
+            io.to(mesa.Id).emit("mostrar:cartas", true)
+        });
         for (let i = 0; i < pre_players.length; i++) {
             for (let j = 0; j < winner.length; j++) {
                 if (winner[j].nombre === pre_players[i].nombre) {
@@ -1034,6 +1052,7 @@ async function startHand(io, tableId, sendChatMessage) {
     // - 
     // - 
     // -
+    io.to(mesa.Id).emit("mostrar:cartas", false)
     sendChatMessage({
         tableId,
         text: `Iniciando nueva mano...`,
