@@ -331,6 +331,7 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
         }
 
         console.log(`POZO: ${mesa.bet}`)
+        return [pre_players, mesa]
     }
 }
 
@@ -779,7 +780,9 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
     mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
     //se inicia una nueva partida
     //esperarNuevaPartida()
-    preflop(mesa.jugadores, mesa, io, sendChatMessage)
+
+    
+    //preflop(mesa.jugadores, mesa, io, sendChatMessage)
 
 }
 
