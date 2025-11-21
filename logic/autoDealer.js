@@ -715,6 +715,12 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
                 io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
 
                 console.log(`GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`);
+
+                sendChatMessage({
+                    tableId: mesa.Id,
+                    text: `GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`,
+                    isSystem: true
+                })
             }
         }
     } else {
@@ -748,7 +754,7 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
     //esperarNuevaPartida()
 
 
-    //preflop(mesa.jugadores, mesa, io, sendChatMessage)
+    preflop(mesa.jugadores, mesa, io, sendChatMessage)
 
 }
 
