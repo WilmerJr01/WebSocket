@@ -1052,7 +1052,7 @@ async function startHand(io, tableId, sendChatMessage) {
     // - 
     // - 
     // -
-    io.to(tableId.Id).emit("mostrar:cartas", false)
+    io.to(tableId).emit("mostrar:cartas", false)
     sendChatMessage({
         tableId,
         text: `Iniciando nueva mano...`,
