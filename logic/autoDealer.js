@@ -115,7 +115,7 @@ export async function action_BB(pre_player) {
 //un "initial_bet" que seria lo que se debe pagar para entrar o para seguir en la mesa
 
 //retorna la lista de jugadores que avanzan de ronda y la mesa con sus datos actualizados (el pozo o la cantidad de fichas en la mesa)
-export async function turnos(table, io, pre_players, players, mesa, initial_bet) {
+export async function turnos(table, io, pre_players, players, mesa, initial_bet, sendChatMessage) {
     if (table) {
         console.log("Si tengo table")
     }
@@ -135,6 +135,13 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
                 players[0].fichas = players[0].fichas + mesa.bet
                 table.currentHand.chips.set(pre_players[0].nombre, players[0].fichas);
                 await table.save()
+
+                sendChatMessage({
+                        tableId: mesa.Id,
+                        text: `GANADOR ${pre_players[0].nombre} | Fichas: ${pre_players[0].fichas}`,
+                        isSystem: true
+                })
+                io.to(mesa.Id).emit("ganador", pre_players[0].nombre);
 
                 io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                 //reorganiza el vector de jugadores para rotar la BB
@@ -168,6 +175,13 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
                     players[0].fichas = players[0].fichas + mesa.bet
                     table.currentHand.chips.set(pre_players[0].nombre, players[0].fichas + mesa.bet);
                     await table.save()
+
+                    sendChatMessage({
+                        tableId: mesa.Id,
+                        text: `GANADOR ${pre_players[0].nombre} | Fichas: ${pre_players[0].fichas}`,
+                        isSystem: true
+                    })
+                    io.to(mesa.Id).emit("ganador", pre_players[0].nombre);
 
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                     //reorganiza el vector de jugadores para rotar la BB
@@ -221,7 +235,12 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
                     table.currentHand.chips.set(pre_players[0].nombre, pre_players[0].fichas);
                     await table.save()
 
-
+                    sendChatMessage({
+                        tableId: mesa.Id,
+                        text: `GANADOR ${pre_players[0].nombre} | Fichas: ${pre_players[0].fichas}`,
+                        isSystem: true
+                    })
+                    io.to(mesa.Id).emit("ganador", pre_players[0].nombre);
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                     //reorganiza el vector de jugadores para rotar la BB
                     mesa.jugadores = reorganizarDesdeIndice(mesa.jugadores, 1)
@@ -359,6 +378,12 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa, o
                 table.currentHand.chips.set(players[0].nombre, players[0].fichas);
                 await table.save()
 
+                sendChatMessage({
+                        tableId: mesa.Id,
+                        text: `GANADOR ${pre_players[0].nombre} | Fichas: ${pre_players[0].fichas}`,
+                        isSystem: true
+                })
+                io.to(mesa.Id).emit("ganador", pre_players[0].nombre);
                 io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
 
                 //reorganiza el vector de jugadores para rotar la BB
@@ -385,6 +410,13 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa, o
                     players[0].fichas = players[0].fichas + mesa.bet
                     table.currentHand.chips.set(players[0].nombre, players[0].fichas);
                     await table.save()
+
+                    sendChatMessage({
+                        tableId: mesa.Id,
+                        text: `GANADOR ${pre_players[0].nombre} | Fichas: ${pre_players[0].fichas}`,
+                        isSystem: true
+                    })
+                    io.to(mesa.Id).emit("ganador", pre_players[0].nombre);
 
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
                     //reorganiza el vector de jugadores para rotar la BB
@@ -456,6 +488,13 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa, o
                     players[0].fichas = players[0].fichas + mesa.bet
                     table.currentHand.chips.set(pre_players[0].nombre, pre_players[0].fichas);
                     await table.save()
+
+                    sendChatMessage({
+                        tableId: mesa.Id,
+                        text: `GANADOR ${pre_players[0].nombre} | Fichas: ${pre_players[0].fichas}`,
+                        isSystem: true
+                    })
+                    io.to(mesa.Id).emit("ganador", pre_players[0].nombre);
 
                     io.to(mesa.Id).emit("chips:update", Object.fromEntries(table.currentHand.chips));
 
@@ -619,7 +658,7 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
     console.log("Pot: " + table.currentHand.pot)
 
     //empieza a preguntar que hacer a cada jugador ejecutando "turnos"
-    const [players2, mesa2] = await turnos(table, io, pre_players, players, mesa, initial_bet)
+    const [players2, mesa2] = await turnos(table, io, pre_players, players, mesa, initial_bet, sendChatMessage)
     //verifica que retorno la funcion turnos
     if (players2 != false) {
         //si retorno algo en la lista players2, pasa a la siguiente ronda
@@ -629,7 +668,18 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
     } else {
         //si retornó false en players2 significa que todos foldearon y hubo un ganador en preflop, se vuelve a ejecutar preflop
         //esperarNuevaPartida()
-        preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
+        
+        await TimeBetweenGames(3, () => {
+            sendChatMessage({
+            tableId: mesa.Id,
+            text: `Iniciando nueva partida...`,
+            isSystem: true
+        })
+            preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
+        });
+
+        
+        
         //hay que poner algun timer aqui para que se espere un tiempo entre una partida y otra
     }
 
@@ -671,15 +721,20 @@ export async function flop(table, io, pre_players, mesa, mazo, sendChatMessage) 
     console.log("--------------------")
 
     //pregunta que hacer luego de mostrar las cartas
-    const [players2, mesa2] = await turnos(table, io, pre_players, players, mesa, 0)
+    const [players2, mesa2] = await turnos(table, io, pre_players, players, mesa, 0, sendChatMessage)
 
     if (players2 != false) {
         //si hay mas de un jugador en la lista, avanza a la primera ronda
         thorn(table, io, players2, mesa2, mazo, cant_jug, sendChatMessage)
     } else {
-        //sino, se inicia otra partida
-        //esperarNuevaPartida()
-        preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
+        await TimeBetweenGames(3, () => {
+            sendChatMessage({
+            tableId: mesa.Id,
+            text: `Iniciando nueva partida...`,
+            isSystem: true
+        })
+            preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
+        });
     }
 
 }
@@ -711,14 +766,20 @@ export async function thorn(table, io, pre_players, mesa, mazo, cant_jug, sendCh
     console.log(`Mesa: ${mesa.mano[0].cara}${mesa.mano[0].palo}, ${mesa.mano[1].cara}${mesa.mano[1].palo}, ${mesa.mano[2].cara}${mesa.mano[2].palo}, ${mesa.mano[3].cara}${mesa.mano[3].palo}`)
     console.log("--------------------")
 
-    const [players2, mesa2] = await turnos(table, io, pre_players, players, mesa, 0)
+    const [players2, mesa2] = await turnos(table, io, pre_players, players, mesa, 0, sendChatMessage)
     console.log(mesa2.mano)
 
     if (players2 != false) {
         river(table, io, players2, mesa2, mazo, cant_jug, sendChatMessage)
     } else {
-        //esperarNuevaPartida()
-        preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
+        await TimeBetweenGames(3, () => {
+            sendChatMessage({
+            tableId: mesa.Id,
+            text: `Iniciando nueva partida...`,
+            isSystem: true
+        })
+            preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
+        });
     }
 }
 
@@ -752,17 +813,31 @@ export async function river(table, io, pre_players, mesa, mazo, cant_jug, sendCh
     console.log(`Mesa: ${mesa.mano[0].cara}${mesa.mano[0].palo}, ${mesa.mano[1].cara}${mesa.mano[1].palo}, ${mesa.mano[2].cara}${mesa.mano[2].palo}, ${mesa.mano[3].cara}${mesa.mano[3].palo}, ${mesa.mano[4].cara}${mesa.mano[4].palo}`)
     console.log("--------------------")
 
-    const [players2, mesa2] = await turnos(table, io, pre_players, players, mesa, 0)
+    const [players2, mesa2] = await turnos(table, io, pre_players, players, mesa, 0, sendChatMessage)
 
     if (players2 != false) {
         //si queda mas de un jugador en la lista para este punto, se ejecuta la funcion "definicion" que evalua que mano es mejor entre los jugadores de la mesa
         definicion(table, io, players2, mesa2, sendChatMessage)
     } else {
-        //esperarNuevaPartida()
-        preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
+        await TimeBetweenGames(3, () => {
+            sendChatMessage({
+            tableId: mesa.Id,
+            text: `Iniciando nueva partida...`,
+            isSystem: true
+        })
+            preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
+        });
     }
 }
 
+function wait(seconds) {
+    return new Promise(resolve => setTimeout(resolve, seconds * 1000));
+}
+
+async function TimeBetweenGames(seconds, callback) {
+    await wait(seconds);
+    callback();
+}
 
 export async function definicion(table, io, pre_players, mesa, sendChatMessage) {
     console.log("--------------------")
@@ -814,6 +889,7 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
                         text: `GANADOR ${pre_players[i].nombre} | Fichas: ${pre_players[i].fichas}`,
                         isSystem: true
                     })
+                    io.to(mesa.Id).emit("ganador", pre_players[0].nombre);
                     //aqui actualizas el server con el ganador
 
                 }
@@ -826,7 +902,14 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
     //esperarNuevaPartida()
 
 
-    preflop(mesa.jugadores, mesa, io, sendChatMessage)
+    await TimeBetweenGames(3, () => {
+            sendChatMessage({
+            tableId: mesa.Id,
+            text: `Iniciando nueva partida...`,
+            isSystem: true
+        })
+            preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
+        });
 
 }
 
