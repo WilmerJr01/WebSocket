@@ -718,12 +718,12 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
         })
             io.to(mesa.Id).emit("community:update", []);
             io.to(mesa.Id).emit("cards:update", {})
-            io.to(tableId).emit("mostrar:cartas", false)
+            io.to(mesa.Id).emit("mostrar:cartas", false)
         });
 
         await TimeBetweenGames(5, () => {
             sendChatMessage({
-            tableId: tableId,
+            tableId: mesa.Id,
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
@@ -787,12 +787,12 @@ export async function flop(table, io, pre_players, mesa, mazo, sendChatMessage) 
         })
             io.to(mesa.Id).emit("community:update", []);
             io.to(mesa.Id).emit("cards:update", {})
-            io.to(tableId).emit("mostrar:cartas", false)
+            io.to(mesa.Id).emit("mostrar:cartas", false)
         });
 
         await TimeBetweenGames(5, () => {
             sendChatMessage({
-            tableId: tableId,
+            tableId: mesa.Id,
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
@@ -843,12 +843,12 @@ export async function thorn(table, io, pre_players, mesa, mazo, cant_jug, sendCh
         })
             io.to(mesa.Id).emit("community:update", []);
             io.to(mesa.Id).emit("cards:update", {})
-            io.to(tableId).emit("mostrar:cartas", false)
+            io.to(mesa.Id).emit("mostrar:cartas", false)
         });
 
         await TimeBetweenGames(5, () => {
             sendChatMessage({
-            tableId: tableId,
+            tableId: mesa.Id,
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
@@ -901,12 +901,12 @@ export async function river(table, io, pre_players, mesa, mazo, cant_jug, sendCh
         })
             io.to(mesa.Id).emit("community:update", []);
             io.to(mesa.Id).emit("cards:update", {})
-            io.to(tableId).emit("mostrar:cartas", false)
+            io.to(mesa.Id).emit("mostrar:cartas", false)
         });
 
         await TimeBetweenGames(5, () => {
             sendChatMessage({
-            tableId: tableId,
+            tableId: mesa.Id,
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
@@ -1029,12 +1029,12 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
         })
             io.to(mesa.Id).emit("community:update", []);
             io.to(mesa.Id).emit("cards:update", {})
-            io.to(tableId).emit("mostrar:cartas", false)
+            io.to(mesa.Id).emit("mostrar:cartas", false)
         });
 
         await TimeBetweenGames(5, () => {
             sendChatMessage({
-            tableId: tableId,
+            tableId: mesa.Id,
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
