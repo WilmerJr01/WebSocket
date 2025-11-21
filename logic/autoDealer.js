@@ -116,14 +116,13 @@ export async function action_BB(pre_player) {
 
 //retorna la lista de jugadores que avanzan de ronda y la mesa con sus datos actualizados (el pozo o la cantidad de fichas en la mesa)
 export async function turnos(table, io, pre_players, players, mesa, initial_bet) {
-
-    
-    if (table){
+    if (table) {
         console.log("Si tengo table")
     }
     for (let i = 0; i < pre_players.length; i++) {
 
         table.currentHand.currentTurn = pre_players[i].nombre;
+        const playerinTurn = pre_players[i].nombre
         await table.save()
         //pregunta si el jugador al que se le está preguntando es el ultimo en la lista
         if (i == pre_players.length - 1) {
@@ -146,14 +145,14 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
             //la variable decision2 lo que debe esperar es la respuesta que devuelva el boton que presione el jugador 
             //por lo que el "await action_BB" debe ser cambiado por un await que espere el boton que presione el jugador
             io.to(mesa.Id).emit("turn:active", {
-                playerId: pre_players[i].nombre,
+                playerId: playerinTurn,
                 option: false
             });
 
             let decision2 = ""
             let new_bet = 0
-
-            decision2, new_bet = await waitForDecision(pre_players[i].nombre)
+            console.log(`Turno de ${playerinTurn}`)
+            [decision2, new_bet] = await waitForDecision(playerinTurn);
 
             //si el jugador decide foldear, se recorre el vector de jugadores buscando el id del jugador y se expulsa del vector
             if (decision2 === "fold") {
@@ -240,17 +239,7 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
                 });
             }
 
-            io.on("connection", (socket) => {
-                socket.on("action:send", async (payload) => {
-                    const { tableId, jugador, action, amount } = payload;
-                    if (jugador && jugador === pre_players[i].nombre) {
-                        decision = action
-                        if (amount) {
-                            new_bet = howmuch(amount)
-                        }
-                    }
-                })
-            })
+            [decision, new_bet] = await waitForDecision(pre_players[i].nombre);
 
             if (decision === "fold") {
                 for (let j = 0; j < players.length; j++) {
@@ -324,8 +313,9 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
         }
 
         console.log(`POZO: ${mesa.bet}`)
-        return [pre_players, mesa]
+
     }
+    return [pre_players, mesa]
 }
 
 
@@ -357,17 +347,9 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
             }
             let decision2 = ""
             let new_bet = 0
-            io.on("connection", (socket) => {
-                socket.on("action:send", async (payload) => {
-                    const { tableId, jugador, action, amount } = payload;
-                    if (jugador && jugador === pre_players[i].nombre) {
-                        decision2 = action
-                        if (amount) {
-                            new_bet = howmuch(amount)
-                        }
-                    }
-                })
-            })
+
+            [decision2, new_bet] = await waitForDecision(pre_players[i].nombre);
+
             if (decision2 === "fold") {
                 for (let j = 0; j < players.length; j++) {
                     if (players[j].nombre === pre_players[i].nombre) {
@@ -446,17 +428,8 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
         } else {
             let decision = ""
             let new_bet = 0
-            io.on("connection", (socket) => {
-                socket.on("action:send", async (payload) => {
-                    const { tableId, jugador, action, amount } = payload;
-                    if (jugador && jugador === pre_players[i].nombre) {
-                        decision = action
-                        if (amount) {
-                            new_bet = howmuch(amount)
-                        }
-                    }
-                })
-            })
+            [decision, new_bet] = await waitForDecision(pre_players[i].nombre);
+
             if (decision === "fold") {
                 for (let j = 0; j < players.length; j++) {
                     if (players[j].nombre === pre_players[i].nombre) {

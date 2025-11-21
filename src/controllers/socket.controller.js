@@ -205,12 +205,12 @@ export const configureSocket = (io) => {
         // === FIN CHAT NUEVO ===
 
         socket.on("action:send", (payload) => {
-            const { tableId, jugador, action, amount } = payload;
+            const { jugador, action, amount, tableId } = payload;
 
             // Si hay alguien esperando la decisión de este jugador…
             const resolver = waitingForDecision.get(jugador);
             if (resolver) {
-                resolver({ action, amount }); // resolvemos la Promise
+                resolver({ action, amount, tableId }); // resolvemos la Promise
                 waitingForDecision.delete(jugador);
             }
         });
