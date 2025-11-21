@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Table from "../models/Table.js";
 import { maybeStartGame } from "../../logic/autoDealer.js";
 import User from "../models/User.js";
+import { waitingForDecision } from "../../logic/desicionManager.js";
 
 export const configureSocket = (io) => {
     // Mapas de sesión
@@ -203,6 +204,17 @@ export const configureSocket = (io) => {
         });
         // === FIN CHAT NUEVO ===
 
+        socket.on("action:send", (payload) => {
+            const { tableId, jugador, action, amount } = payload;
+
+            // Si hay alguien esperando la decisión de este jugador…
+            const resolver = waitingForDecision.get(jugador);
+            if (resolver) {
+                resolver({ action, amount }); // resolvemos la Promise
+                waitingForDecision.delete(jugador);
+            }
+        });
+
         // Unirse a una mesa
         socket.on("joinTable", async (tableId, ack) => {
             try {
@@ -248,7 +260,7 @@ export const configureSocket = (io) => {
                 // Agregar en DB
                 const updated = await Table.findByIdAndUpdate(
                     tableId,
-                    { $addToSet: { players: userId}, $set: { [`currentHand.chips.${userId}`]:  userChipsInTable(socket.data.chips, table.maxBuyIn, table.minBuyIn)}},
+                    { $addToSet: { players: userId }, $set: { [`currentHand.chips.${userId}`]: userChipsInTable(socket.data.chips, table.maxBuyIn, table.minBuyIn) } },
                     { new: true }
                 ).lean();
 

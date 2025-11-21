@@ -8,6 +8,7 @@ import { mazo } from './cartas.js';
 import { mejor_mano } from './ganador.js';
 import { verificar } from './Manos.js';
 import { Player, Mesa, Carta } from "./clases.js";
+import { waitForDecision } from "./desicionManager.js";
 
 //reorganiza el vector de jugadores para rotar los roles (dealer, SB, BB)
 function reorganizarDesdeIndice(v, indice) {
@@ -151,17 +152,9 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet)
 
             let decision2 = ""
             let new_bet = 0
-            io.on("connection", (socket) => {
-                socket.on("action:send", async (payload) => {
-                    const { tableId, jugador, action, amount } = payload;
-                    if (jugador && jugador === pre_players[i].nombre) {
-                        decision2 = action
-                        if (amount) {
-                            new_bet = howmuch(amount)
-                        }
-                    }
-                })
-            })
+
+            decision2, new_bet = await waitForDecision(pre_players[i].nombre)
+
             //si el jugador decide foldear, se recorre el vector de jugadores buscando el id del jugador y se expulsa del vector
             if (decision2 === "fold") {
                 for (let j = 0; j < players.length; j++) {
@@ -781,7 +774,7 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
     //se inicia una nueva partida
     //esperarNuevaPartida()
 
-    
+
     //preflop(mesa.jugadores, mesa, io, sendChatMessage)
 
 }
