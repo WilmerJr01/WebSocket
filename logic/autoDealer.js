@@ -655,6 +655,11 @@ export async function thorn(table, io, pre_players, mesa, mazo, cant_jug, sendCh
     let players = pre_players
     for (let y = 0; y < pre_players.length; y++) {
         pre_players[y].bet = 0
+        table.currentHand.bets.set(pre_players[y].nombre, 0);
+        await table.save()
+
+        io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
+
     }
     mesa.mano[3] = mazo[cant_jug + 6]
     sendChatMessage({
@@ -690,6 +695,11 @@ export async function river(table, io, pre_players, mesa, mazo, cant_jug, sendCh
     let players = pre_players
     for (let y = 0; y < pre_players.length; y++) {
         pre_players[y].bet = 0
+        table.currentHand.bets.set(pre_players[y].nombre, 0);
+        await table.save()
+
+        io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
+
     }
     mesa.mano[4] = mazo[cant_jug + 8]
     sendChatMessage({
