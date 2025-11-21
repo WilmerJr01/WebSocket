@@ -436,7 +436,7 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa, o
                 for (let j = 0; j < players.length; j++) {
                     if (players[j].nombre === pre_players.at(-2).nombre) {
                         players.splice(j, 1)
-                        return [players, mesa]
+                        
                     }
                 }
                 if (players.length < 2) {
@@ -466,6 +466,8 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa, o
                     
                     return [false, mesa]
 
+                } else {
+                    return [players, mesa]
                 }
             } else if (decision2 === "raise") {
                 pre_players[i].fichas = pre_players[i].fichas - (new_bet - pre_players[i].bet)
