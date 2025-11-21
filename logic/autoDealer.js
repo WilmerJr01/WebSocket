@@ -728,13 +728,15 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-            
-                if(Lista_jugadores.length == mesa.jugadores.length){
+            preflop(mesa.jugadores, mesa, io, sendChatMessage)
+                
+            /*
+            if(Lista_jugadores.length == mesa.jugadores.length){
                     preflop(mesa.jugadores, mesa, io, sendChatMessage)
                 } else {
                     preflop(Lista_jugadores, mesa, io, sendChatMessage)
                 }
-            
+            */
         });
 
         
@@ -804,11 +806,15 @@ export async function flop(table, io, pre_players, mesa, mazo, sendChatMessage) 
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
+            preflop(mesa.jugadores, mesa, io, sendChatMessage)
+                
+            /*
             if(Lista_jugadores.length == mesa.jugadores.length){
                     preflop(mesa.jugadores, mesa, io, sendChatMessage)
                 } else {
                     preflop(Lista_jugadores, mesa, io, sendChatMessage)
                 }
+            */
         });
     }
 
@@ -865,11 +871,15 @@ export async function thorn(table, io, pre_players, mesa, mazo, cant_jug, sendCh
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
+            preflop(mesa.jugadores, mesa, io, sendChatMessage)
+                
+            /*
             if(Lista_jugadores.length == mesa.jugadores.length){
                     preflop(mesa.jugadores, mesa, io, sendChatMessage)
                 } else {
                     preflop(Lista_jugadores, mesa, io, sendChatMessage)
                 }
+            */
         });
     }
 }
@@ -928,11 +938,15 @@ export async function river(table, io, pre_players, mesa, mazo, cant_jug, sendCh
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
+            preflop(mesa.jugadores, mesa, io, sendChatMessage)
+                
+            /*
             if(Lista_jugadores.length == mesa.jugadores.length){
                     preflop(mesa.jugadores, mesa, io, sendChatMessage)
                 } else {
                     preflop(Lista_jugadores, mesa, io, sendChatMessage)
                 }
+            */
         });
     }
 }
@@ -1060,11 +1074,15 @@ export async function definicion(table, io, pre_players, mesa, sendChatMessage) 
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
-           if(Lista_jugadores.length == mesa.jugadores.length){
+           preflop(mesa.jugadores, mesa, io, sendChatMessage)
+                
+            /*
+            if(Lista_jugadores.length == mesa.jugadores.length){
                     preflop(mesa.jugadores, mesa, io, sendChatMessage)
                 } else {
                     preflop(Lista_jugadores, mesa, io, sendChatMessage)
                 }
+            */
         });
 
 }
