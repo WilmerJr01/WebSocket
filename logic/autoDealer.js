@@ -990,7 +990,7 @@ async function startHand(io, tableId, userIdToSocket, sendChatMessage) {
 
         await TimeBetweenGames(10, () => {
             sendChatMessage({
-            tableId: mesa.Id,
+            tableId: tableId,
             text: `Iniciando nueva partida...`,
             isSystem: true
         })
