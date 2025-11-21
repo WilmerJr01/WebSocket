@@ -219,9 +219,9 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet,
                 //se ejecuta la funcion raise que es basicamente otra funcion turnos pero con la lista reordenada y con una nueva apuesta inicial
                 if(players.length == 2){
 
-                    return await raise(table, io, players, new_bet, 1, mesa, players)
+                    return await raise(table, io, players, new_bet, 1, mesa, players, sendChatMessage)
                 } else {
-                    return await raise(table, io, players, new_bet, 2, mesa, players)
+                    return await raise(table, io, players, new_bet, 2, mesa, players, sendChatMessage)
                 }
                 
                 /////////
@@ -306,17 +306,17 @@ export async function turnos(table, io, pre_players, players, mesa, initial_bet,
                     let auxpla = []
                     auxpla[0] = pre_players[1]
                     auxpla[1] = pre_players[0]
-                    return await raise(table, io, auxpla, new_bet, 0, mesa, players)
+                    return await raise(table, io, auxpla, new_bet, 0, mesa, players, sendChatMessage)
                 } else {
                     for (let j = 0; j < players.length; j++) {
 
                     if (players[j].nombre === pre_players[i].nombre) {
                         //busca el indice del jugador en el vector auxiliar
                         if (j == players.length - 1) {
-                            return await raise(table, io, players, new_bet, 0, mesa, players)
+                            return await raise(table, io, players, new_bet, 0, mesa, players, sendChatMessage)
                         } else {
                             //se manda a la funcion raise el indice j+1 ya que el primero al que se le debe preguntar es a quien está al lado de quien hizo raise
-                            return await raise(table, io, players, new_bet, j + 1, mesa, players)
+                            return await raise(table, io, players, new_bet, j + 1, mesa, players, sendChatMessage)
                         }
                     }
                 }
@@ -447,11 +447,11 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa, o
                     let auxpla = []
                     auxpla[0] = pre_players[1]
                     auxpla[1] = pre_players[0]
-                    return await raise(table, io, auxpla, new_bet, 0, mesa, orden)
+                    return await raise(table, io, auxpla, new_bet, 0, mesa, orden, sendChatMessage)
                 }
                 for (let j = 0; j < players.length; j++) {
                     if (players[j].nombre === pre_players[i].nombre) {
-                        return await raise(table, io, players, new_bet, j + 1, mesa, orden)
+                        return await raise(table, io, players, new_bet, j + 1, mesa, orden, sendChatMessage)
                     }
                 }
             } else {
@@ -540,11 +540,11 @@ export async function raise(table, io, pre_players, initial_bet, indice, mesa, o
                     let auxpla = []
                     auxpla[0] = pre_players[1]
                     auxpla[1] = pre_players[0]
-                    return await raise(table, io, auxpla, new_bet, 0, mesa, orden)
+                    return await raise(table, io, auxpla, new_bet, 0, mesa, orden, sendChatMessage)
                 }
                 for (let j = 0; j < players.length; j++) {
                     if (players[j].nombre === pre_players[i].nombre) {
-                        return await raise(table, io, players, new_bet, j + 1, mesa, orden)
+                        return await raise(table, io, players, new_bet, j + 1, mesa, orden, sendChatMessage)
                     }
                 }
             } else {
