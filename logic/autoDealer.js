@@ -114,9 +114,9 @@ export async function action_BB(pre_player) {
 //un "initial_bet" que seria lo que se debe pagar para entrar o para seguir en la mesa
 
 //retorna la lista de jugadores que avanzan de ronda y la mesa con sus datos actualizados (el pozo o la cantidad de fichas en la mesa)
-export async function turnos(io, pre_players, players, mesa, initial_bet) {
+export async function turnos(table, io, pre_players, players, mesa, initial_bet) {
 
-    const table = await Table.findById(mesa.Id).select("currentHand")
+    
     if (table){
         console.log("Si tengo table")
     }
@@ -210,7 +210,7 @@ export async function turnos(io, pre_players, players, mesa, initial_bet) {
 
                 io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
                 //se ejecuta la funcion raise que es basicamente otra funcion turnos pero con la lista reordenada y con una nueva apuesta inicial
-                return await raise(players, new_bet, 2, mesa)/////////
+                return await raise(table, io, players, new_bet, 2, mesa)/////////
             } else {
                 //si la decision es diferente a raise o fold, o sea check, se retorna la lista y la mesa para avanzar de ronda
                 if (players.length > 1) {
@@ -298,10 +298,10 @@ export async function turnos(io, pre_players, players, mesa, initial_bet) {
                     if (players[j].nombre === pre_players[i].nombre) {
                         //busca el indice del jugador en el vector auxiliar
                         if (j == players.length - 1) {
-                            return await raise(players, new_bet, 0, mesa)
+                            return await raise(table, io, players, new_bet, 0, mesa)
                         } else {
                             //se manda a la funcion raise el indice j+1 ya que el primero al que se le debe preguntar es a quien está al lado de quien hizo raise
-                            return await raise(players, new_bet, j + 1, mesa)
+                            return await raise(table, io, players, new_bet, j + 1, mesa)
                         }
                     }
                 }
@@ -339,10 +339,9 @@ export async function turnos(io, pre_players, players, mesa, initial_bet) {
 //una lista pre_players, un initial_bet y una mesa que hacen lo mismo que en turnos
 //un indice que es desde donde se va a reordenar la lista pre_players para preguntar que hacer
 //funciona basicamente igual que turnos y retorna lo mismo
-export async function raise(pre_players, initial_bet, indice, mesa) {
+export async function raise(table, io, pre_players, initial_bet, indice, mesa) {
     let players = pre_players
     pre_players = reorganizarDesdeIndice(pre_players, indice)
-    const table = await Table.findById(mesa.Id).select("currentHand")
 
     for (let i = 0; i < pre_players.length - 1; i++) {
         //aqui en vez de parar en el ultimo de la lista, para en el penultimo
@@ -413,7 +412,7 @@ export async function raise(pre_players, initial_bet, indice, mesa) {
                 io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
                 for (let j = 0; j < players.length; j++) {
                     if (players[j].nombre === pre_players[i].nombre) {
-                        return await raise(players, new_bet, j + 1, mesa)
+                        return await raise(table, io, players, new_bet, j + 1, mesa)
                     }
                 }
             } else {
@@ -490,7 +489,7 @@ export async function raise(pre_players, initial_bet, indice, mesa) {
                 io.to(mesa.Id).emit("bets:update", Object.fromEntries(table.currentHand.bets));
                 for (let j = 0; j < players.length; j++) {
                     if (players[j].nombre === pre_players[i].nombre) {
-                        return await raise(players, new_bet, j + 1, mesa)
+                        return await raise(table, io, players, new_bet, j + 1, mesa)
                     }
                 }
             } else {
@@ -599,13 +598,13 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
     console.log("Pot: " + table.currentHand.pot)
 
     //empieza a preguntar que hacer a cada jugador ejecutando "turnos"
-    const [players2, mesa2] = await turnos(io, pre_players, players, mesa, initial_bet)
+    const [players2, mesa2] = await turnos(table, io, pre_players, players, mesa, initial_bet)
     //verifica que retorno la funcion turnos
     if (players2 != false) {
         //si retorno algo en la lista players2, pasa a la siguiente ronda
 
         //timer
-        flop(io, players2, mesa2, mazoMezclado, sendChatMessage)
+        flop(table, io, players2, mesa2, mazoMezclado, sendChatMessage)
     } else {
         //si retornó false en players2 significa que todos foldearon y hubo un ganador en preflop, se vuelve a ejecutar preflop
         //esperarNuevaPartida()
@@ -616,8 +615,7 @@ export async function preflop(pre_players, mesa, io, sendChatMessage) {
     return players;
 }
 
-export async function flop(io, pre_players, mesa, mazo, sendChatMessage) {
-    const table = await Table.findById(mesa.Id).select("currentHand")
+export async function flop(table, io, pre_players, mesa, mazo, sendChatMessage) {
     console.log("--------------------")
     console.log("FLOP")
     console.log("--------------------")
@@ -647,11 +645,11 @@ export async function flop(io, pre_players, mesa, mazo, sendChatMessage) {
     console.log("--------------------")
 
     //pregunta que hacer luego de mostrar las cartas
-    const [players2, mesa2] = await turnos(io, pre_players, players, mesa, 0)
+    const [players2, mesa2] = await turnos(table, io, pre_players, players, mesa, 0)
 
     if (players2 != false) {
         //si hay mas de un jugador en la lista, avanza a la primera ronda
-        thorn(io, players2, mesa2, mazo, cant_jug, sendChatMessage)
+        thorn(table, io, players2, mesa2, mazo, cant_jug, sendChatMessage)
     } else {
         //sino, se inicia otra partida
         //esperarNuevaPartida()
@@ -661,8 +659,7 @@ export async function flop(io, pre_players, mesa, mazo, sendChatMessage) {
 }
 
 
-export async function thorn(io, pre_players, mesa, mazo, cant_jug, sendChatMessage) {
-    const table = await Table.findById(mesa.Id).select("currentHand")
+export async function thorn(table, io, pre_players, mesa, mazo, cant_jug, sendChatMessage) {
     console.log("--------------------")
     console.log("THORN")
     console.log("--------------------")
@@ -686,7 +683,7 @@ export async function thorn(io, pre_players, mesa, mazo, cant_jug, sendChatMessa
     const [players2, mesa2] = await turnos(pre_players, players, mesa, 0)
 
     if (players2 != false) {
-        river(io, players2, mesa2, mazo, cant_jug, sendChatMessage)
+        river(table, io, players2, mesa2, mazo, cant_jug, sendChatMessage)
     } else {
         //esperarNuevaPartida()
         preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
@@ -694,8 +691,7 @@ export async function thorn(io, pre_players, mesa, mazo, cant_jug, sendChatMessa
 }
 
 
-export async function river(io, pre_players, mesa, mazo, cant_jug, sendChatMessage) {
-    const table = await Table.findById(mesa.Id).select("currentHand")
+export async function river(table, io, pre_players, mesa, mazo, cant_jug, sendChatMessage) {
     console.log("--------------------")
     console.log("RIVER")
     console.log("--------------------")
@@ -721,7 +717,7 @@ export async function river(io, pre_players, mesa, mazo, cant_jug, sendChatMessa
 
     if (players2 != false) {
         //si queda mas de un jugador en la lista para este punto, se ejecuta la funcion "definicion" que evalua que mano es mejor entre los jugadores de la mesa
-        definicion(io, players2, mesa2, sendChatMessage)
+        definicion(table, io, players2, mesa2, sendChatMessage)
     } else {
         //esperarNuevaPartida()
         preflop(mesa2.jugadores, mesa2, io, sendChatMessage)
@@ -729,8 +725,7 @@ export async function river(io, pre_players, mesa, mazo, cant_jug, sendChatMessa
 }
 
 
-export async function definicion(io, pre_players, mesa, sendChatMessage) {
-    const table = await Table.findById(mesa.Id).select("currentHand")
+export async function definicion(table, io, pre_players, mesa, sendChatMessage) {
     console.log("--------------------")
     console.log("DEFINICION")
     console.log("--------------------")
