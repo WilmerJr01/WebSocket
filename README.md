@@ -139,4 +139,5 @@ npm run dev      # (agregar si tienes script de desarrollo)
 
 ---
 
-Autenticación via JWT • MongoDB • Socket.IO • Deployable en Railway/Render
+Autenticación via JWT • MongoDB • Socket.IO • Deployable en Railway
+Link del repositorio del Front-End: https://github.com/WilmerJr01/ProyectoPoker
