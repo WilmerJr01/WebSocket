@@ -1,5 +1,11 @@
 # Poker Real-Time Backend
 
+![Node.js](https://img.shields.io/badge/Node.js-22.0.0-339933?logo=nodedotjs)
+![Express.js](https://img.shields.io/badge/Express.js-4.21.0-000000?logo=express)
+![Socket.IO](https://img.shields.io/badge/Socket.IO-4.8.0-010101?logo=socketdotio)
+![MongoDB](https://img.shields.io/badge/MongoDB-8.0.0-47A248?logo=mongodb)
+![JWT](https://img.shields.io/badge/JWT-9.0.0-000000?logo=jsonwebtokens)
+
 Backend de poker multiplayer con comunicación en tiempo real mediante WebSockets.
 
 ## Tech Stack
